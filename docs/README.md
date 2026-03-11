@@ -24,4 +24,4 @@ python -m unittest test_associations   # run validation suite
 2. Each noun is encoded via the CMU Pronouncing Dictionary into Major System digits
 3. For each number 00–99, the shortest matching noun is selected
 4. A test suite validates every association (noun status, encoding, concreteness)
-5. A lightweight HTTP server serves the wordlist to a single-page frontend with grid view and two quiz modes
+5. A lightweight HTTP server serves the wordlist to a single-page frontend with grid view and two pool-based quiz modes (spaced repetition with 10-word active pools)

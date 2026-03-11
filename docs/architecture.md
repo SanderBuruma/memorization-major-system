@@ -183,12 +183,16 @@ Triggered only when quick check finds issues. For each entry, checks in order:
 
 Each failure triggers `_try_replace()` which picks the next-best candidate from the pool.
 
-### Test suite (`test_associations.py`)
-Independent validation with 4 test methods, each iterating all 100 entries via `subTest()`:
+### Test suites
+
+**test_associations.py** — independent validation with 4 test methods, each iterating all 100 entries via `subTest()`:
 - `test_all_numbers_covered` — no nulls
 - `test_all_words_are_nouns` — WordNet noun check
 - `test_all_encodings_match` — CMU encoding check
 - `test_all_words_are_concrete` — hypernym chain to `physical_entity.n.01`
+
+**test_pool_quiz.py** — 25 tests verifying pool-based quiz logic (Python replica of JS):
+- Pool init, replacement, pick, streak graduation, recycle-at-80, full simulation
 
 ## HTTP Server
 
@@ -215,19 +219,42 @@ let mapping  = {};              // {"0":"S, Z",...} from /api/mapping
 let score    = {correct:0, total:0};  // session score
 let currentQuiz    = null;      // {digits, word} for active quiz
 let currentReverse = null;      // {digits, word} for active reverse quiz
+
+// Pool-based quiz state (independent per quiz type)
+let quizPool = [];              // 10 active keys for forward quiz
+let quizStreaks = {};           // key → consecutive correct count
+let quizMastered = {};          // key → true when graduated
+let reversePool = [];           // same for reverse quiz
+let reverseStreaks = {};
+let reverseMastered = {};
 ```
 
-Score is ephemeral — resets on page refresh.
+Score is ephemeral — resets on page refresh. Pool state also resets on refresh (not persisted to localStorage).
 
-### Quiz Logic
+### Pool-Based Quiz System (Spaced Repetition)
 
-Both quiz modes follow the same pattern:
-1. Pick random entry from `keys` array
-2. Display prompt (number or word)
-3. User types answer, presses Enter or clicks Submit
-4. Exact match check (case-insensitive; reverse mode accepts "7" or "07")
-5. Show feedback (green correct / red incorrect with answer)
-6. Auto-advance to next question after 1800ms
+Both quiz modes use a **pool of 10 active words** instead of picking randomly from all 100. This ensures focused repetition for mastery.
+
+**Pool lifecycle:**
+1. On first quiz start, `initPool()` picks 10 random keys (Fisher-Yates shuffle)
+2. `pickFromPool()` selects a random word from the pool, avoiding the last-shown word
+3. On correct answer: increment streak counter for that word
+4. **Graduation:** 3 consecutive correct answers → word is mastered, removed from pool, replaced by a new unmastered word via `replaceInPool()`
+5. On incorrect or skip: streak resets to 0, word stays in pool
+6. **Recycle at 80:** when 80 words are mastered, 1 random mastered word gets recycled back (unmastered, streak reset) — keeps the quiz cycling indefinitely
+7. Pool persists across tab switches (module-level state)
+
+**Helper functions:**
+- `initPool(mastered)` — pick 10 random unmastered keys
+- `replaceInPool(pool, masteredKey, mastered)` — swap graduated key for a fresh one
+- `pickFromPool(pool, lastKey)` — random pick avoiding consecutive repeats
+
+### Answer Checking
+
+- Exact match, case-insensitive
+- Reverse mode accepts "7" or "07" for "07"
+- Feedback shows streak progress ("streak: 2/3") or mastery status ("Mastered (45/80)")
+- Auto-advance to next question after 1800ms
 
 ### Sections
 
@@ -240,3 +267,4 @@ Four tabs: **Grid** (10×10 display), **Quiz →** (number→word), **← Revers
 3. **Self-healing wordlist.** The server validates on startup and auto-repairs invalid entries. You can delete `wordlist.json` and it regenerates automatically.
 4. **Deterministic generation.** Same WordNet + CMU dict → same wordlist every time. No randomness in the selection algorithm.
 5. **Frontend is stateless.** All quiz logic runs client-side. The server is a static data provider with two JSON endpoints.
+6. **Pool-based spaced repetition.** Each quiz type maintains an independent pool of 10 active words. Words graduate after 3 consecutive correct answers. At 80 mastered, 1 random word gets recycled back — the quiz never "finishes".

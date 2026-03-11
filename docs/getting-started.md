@@ -36,16 +36,23 @@ Press `Ctrl+C` to stop.
 ## Running Tests
 
 ```bash
-python -m unittest test_associations
-# or
-python test_associations.py
+python -m pytest              # run all tests
+python -m pytest test_associations.py   # wordlist validation only
+python -m pytest test_pool_quiz.py      # pool quiz logic only
 ```
 
-Validates all 100 number-noun pairs for:
+**test_associations.py** — validates all 100 number-noun pairs for:
 - Coverage (no gaps)
 - Noun status (exists in WordNet as a noun)
 - Encoding correctness (CMU phonemes match expected digits)
 - Concreteness (traces to `physical_entity.n.01`)
+
+**test_pool_quiz.py** — verifies the pool-based quiz system (25 tests):
+- Pool initialization, replacement, and shrinking
+- Streak graduation (3 correct → mastered)
+- Skip/incorrect streak reset
+- Recycle-at-80 behavior (mastered count never exceeds 80)
+- No consecutive repeats, all 100 words eventually seen
 
 ## Regenerating the Wordlist
 
@@ -82,9 +89,10 @@ major_system/
 ├── generator.py         # Word selection + validation logic
 ├── validator.py         # CMU phoneme → Major System digit encoding
 ├── server.py            # HTTP server (localhost:8080)
-├── test_associations.py # Unittest suite (4 tests × 100 subtests)
+├── test_associations.py # Wordlist validation (4 tests × 100 subtests)
+├── test_pool_quiz.py   # Pool quiz logic tests (25 tests)
 ├── static/
-│   └── index.html       # Single-page frontend
+│   └── index.html       # Single-page frontend (pool-based quiz)
 ├── wordlist.json        # Generated 00–99 mappings
 ├── requirements.txt     # Python dependencies
 └── docs/                # This documentation

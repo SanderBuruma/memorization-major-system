@@ -67,49 +67,74 @@ Unittest suite, runnable independently of the server.
 | 72–89 | `test_all_encodings_match()` | Every word's CMU encoding matches its number |
 | 95–111 | `test_all_words_are_concrete()` | Every word traces to `physical_entity.n.01` |
 
-## static/index.html (306 lines)
+## test_pool_quiz.py (232 lines)
 
-Self-contained SPA: inline CSS (lines 7–64) + inline JavaScript (lines 129–304).
+Tests for the pool-based quiz system. Replicates the JS pool logic in Python and statistically verifies correctness.
 
-### CSS (lines 7–64)
+| Line | Class | Tests | Description |
+|------|-------|-------|-------------|
+| 14–20 | Helper functions | — | `init_pool()`, `replace_in_pool()`, `pick_from_pool()` (Python replicas of JS) |
+| 40–57 | `TestInitPool` | 5 | Pool size, mastered exclusion, validity, no duplicates, randomness |
+| 60–87 | `TestReplaceInPool` | 4 | Replacement, mastered exclusion, pool shrinking, no duplicates |
+| 90–104 | `TestPickFromPool` | 4 | Empty pool, single element, avoids last key, all members reachable |
+| 107–125 | `TestStreakGraduation` | 3 | 3-correct graduation, incorrect reset, skip reset |
+| 128–170 | `TestRecycleAt80` | 4 | Drops to 79, streak reset, never exceeds 80, random distribution |
+| 173–184 | `TestPoolPersistence` | 2 | Pool survives across rounds, reinits when empty |
+| 187–230 | `TestFullSimulation` | 3 | Only pool words quizzed, no consecutive repeats, all 100 eventually seen |
+
+## static/index.html (481 lines)
+
+Self-contained SPA: inline CSS + inline JavaScript (no build step).
+
+### CSS (lines 14–119)
 
 | Line | Section |
 |------|---------|
-| 8–18 | Global resets, body, container, header, nav buttons |
-| 22–28 | Grid layout (10-column, responsive to 5-column at 700px) |
-| 30–45 | Quiz UI: prompt, input, buttons, feedback colors |
-| 47–50 | Score bar |
-| 52–57 | Reference table |
-| 59–63 | Media query for mobile |
+| 15–54 | CSS custom properties (dark/light themes, 18 vars each) |
+| 55–56 | Global resets, body |
+| 57–65 | Container, header, nav buttons |
+| 69–75 | Grid layout (10-column, responsive to 5-column at 700px) |
+| 77–93 | Quiz UI: prompt, input, buttons, feedback colors |
+| 95–98 | Score bar |
+| 100–105 | Reference table |
+| 107–112 | Theme toggle button |
+| 114–118 | Media query for mobile |
 
-### HTML (lines 66–127)
+### HTML (lines 121–183)
 
 | Line | Section |
 |------|---------|
-| 68–71 | Header with title |
-| 73–78 | Nav bar (4 tab buttons) |
-| 81–83 | Grid section |
-| 86–97 | Quiz section (number → word) |
-| 100–111 | Reverse quiz section (word → number) |
-| 114–121 | Reference section |
-| 124–126 | Score bar |
+| 122 | Theme toggle button |
+| 124–127 | Header with title |
+| 129–134 | Nav bar (4 tab buttons) |
+| 137–139 | Grid section |
+| 142–153 | Quiz section (number → word), skip calls `skipQuiz()` |
+| 155–167 | Reverse quiz section (word → number), skip calls `skipReverse()` |
+| 169–177 | Reference section |
+| 179–182 | Score bar |
 
-### JavaScript (lines 129–304)
+### JavaScript (lines 185–480)
 
 | Line | Function | Description |
 |------|----------|-------------|
-| 133–140 | State variables | `wordlist`, `mapping`, `keys`, `score`, quiz state |
-| 145–155 | `init()` | Parallel fetch of `/api/wordlist` + `/api/mapping`, render |
-| 160–171 | `renderGrid()` | Build 100 grid cells |
-| 176–184 | `renderRef()` | Build reference table rows |
-| 189–196 | `showSection(name)` | Tab switching, auto-start quizzes |
-| 201–212 | `startQuiz()` | Pick random number, set up quiz UI |
-| 215–236 | `checkQuiz()` | Validate answer, show feedback, auto-advance (1800ms) |
-| 241–252 | `startReverse()` | Pick random word, set up reverse quiz UI |
-| 255–278 | `checkReverse()` | Validate answer (accepts "7" or "07"), auto-advance |
-| 283–287 | `updateScore()` | Calculate percentage, update display |
-| 292–297 | Event listeners | Enter key → submit for both quiz inputs |
-| 302 | `init()` call | Boots the application |
+| 189–206 | Theme toggle | `toggleTheme()`, `updateToggleIcon()`, SVG icons |
+| 211–227 | State variables | `wordlist`, `mapping`, `keys`, `score`, quiz state + pool state |
+| 232–241 | `init()` | Parallel fetch of `/api/wordlist` + `/api/mapping`, render |
+| 246–257 | `renderGrid()` | Build 100 grid cells |
+| 262–270 | `renderRef()` | Build reference table rows |
+| 275–282 | `showSection(name)` | Tab switching, auto-start quizzes |
+| 288–296 | `initPool(mastered)` | Pick 10 random unmastered keys (Fisher-Yates shuffle) |
+| 298–305 | `replaceInPool(pool, masteredKey, mastered)` | Remove graduated key, add random replacement |
+| 307–313 | `pickFromPool(pool, lastKey)` | Random pick from pool, avoids consecutive repeats |
+| 318–338 | `startQuiz()` | Lazy-init pool, pick from pool, set up quiz UI |
+| 340–378 | `checkQuiz()` | Validate answer, track streaks, graduate at 3, recycle at 80 |
+| 380–383 | `skipQuiz()` | Reset streak, advance to next |
+| 388–408 | `startReverse()` | Lazy-init pool, pick from pool, set up reverse quiz UI |
+| 410–448 | `checkReverse()` | Validate answer, track streaks, graduate at 3, recycle at 80 |
+| 450–453 | `skipReverse()` | Reset streak, advance to next |
+| 458–462 | `updateScore()` | Calculate percentage, update display |
+| 467–472 | Event listeners | Enter key → submit for both quiz inputs |
+| 478 | `init()` call | Boots the application |
 
 ## wordlist.json (102 lines)
 
