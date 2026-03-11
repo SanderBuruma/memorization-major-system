@@ -248,6 +248,35 @@ let mixedStreaks = {};
 let mixedMastered = {};
 
 /* ================================================================== */
+/*  Persistence                                                        */
+/* ================================================================== */
+function saveState(){
+  localStorage.setItem('quizState', JSON.stringify({
+    score: score,
+    quizPool: quizPool, quizStreaks: quizStreaks, quizMastered: quizMastered,
+    reversePool: reversePool, reverseStreaks: reverseStreaks, reverseMastered: reverseMastered,
+    mixedPool: mixedPool, mixedStreaks: mixedStreaks, mixedMastered: mixedMastered
+  }));
+}
+
+function loadState(){
+  try {
+    var s = JSON.parse(localStorage.getItem('quizState'));
+    if(!s) return;
+    score = s.score || {correct:0, total:0};
+    quizPool = s.quizPool || [];
+    quizStreaks = s.quizStreaks || {};
+    quizMastered = s.quizMastered || {};
+    reversePool = s.reversePool || [];
+    reverseStreaks = s.reverseStreaks || {};
+    reverseMastered = s.reverseMastered || {};
+    mixedPool = s.mixedPool || [];
+    mixedStreaks = s.mixedStreaks || {};
+    mixedMastered = s.mixedMastered || {};
+  } catch(e){}
+}
+
+/* ================================================================== */
 /*  Init                                                               */
 /* ================================================================== */
 async function init(){
@@ -257,6 +286,7 @@ async function init(){
   wordlist = await wlRes.json();
   mapping  = await mapRes.json();
   keys     = Object.keys(wordlist).sort();
+  loadState();
   renderGrid();
   renderRef();
   updateScore();
@@ -344,6 +374,7 @@ function startQuiz(){
       quizMastered = {}; quizStreaks = {};
     }
     quizPool = initPool(quizMastered);
+    saveState();
   }
   var lastKey = currentQuiz ? currentQuiz.digits : null;
   const d = pickFromPool(quizPool, lastKey);
@@ -396,11 +427,13 @@ function checkQuiz(){
     quizStreaks[key] = 0;
   }
   updateScore();
+  saveState();
   quizTimer = setTimeout(startQuiz, 1800);
 }
 
 function skipQuiz(){
   if(currentQuiz) quizStreaks[currentQuiz.digits] = 0;
+  saveState();
   startQuiz();
 }
 
@@ -414,6 +447,7 @@ function startReverse(){
       reverseMastered = {}; reverseStreaks = {};
     }
     reversePool = initPool(reverseMastered);
+    saveState();
   }
   var lastKey = currentReverse ? currentReverse.digits : null;
   const d = pickFromPool(reversePool, lastKey);
@@ -467,11 +501,13 @@ function checkReverse(){
     reverseStreaks[correct] = 0;
   }
   updateScore();
+  saveState();
   reverseTimer = setTimeout(startReverse, 1800);
 }
 
 function skipReverse(){
   if(currentReverse) reverseStreaks[currentReverse.digits] = 0;
+  saveState();
   startReverse();
 }
 
@@ -485,6 +521,7 @@ function startMixed(){
       mixedMastered = {}; mixedStreaks = {};
     }
     mixedPool = initPool(mixedMastered);
+    saveState();
   }
   var lastKey = currentMixed ? currentMixed.digits : null;
   const d = pickFromPool(mixedPool, lastKey);
@@ -555,11 +592,13 @@ function checkMixed(){
     mixedStreaks[key] = 0;
   }
   updateScore();
+  saveState();
   mixedTimer = setTimeout(startMixed, 1800);
 }
 
 function skipMixed(){
   if(currentMixed) mixedStreaks[currentMixed.digits] = 0;
+  saveState();
   startMixed();
 }
 
