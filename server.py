@@ -16,8 +16,8 @@ from validator import DIGIT_TO_SOUNDS
 
 logger = logging.getLogger(__name__)
 
-HOST = 'localhost'
-PORT = 8080
+HOST = '127.0.0.1'
+PORT = 8734
 
 # Populated at startup
 wordlist = {}

@@ -21,7 +21,14 @@ WORDLIST_PATH = Path(__file__).parent / 'wordlist.json'
 
 # Manual overrides for numbers where the automatic search yields poor results.
 # Each value must still pass all validation (noun, concrete, encoding).
-MANUAL_OVERRIDES = {}
+MANUAL_OVERRIDES = {
+    '03': 'seam',   '04': 'czar',   '07': 'sock',   '08': 'sofa',
+    '09': 'soap',   '10': 'dice',   '14': 'door',   '15': 'doll',
+    '17': 'dog',    '20': 'nose',   '28': 'knife',  '33': 'mom',
+    '34': 'mare',   '40': 'rose',   '49': 'rope',   '52': 'lion',
+    '54': 'lair',   '60': 'cheese', '66': 'judge',  '69': 'ship',
+    '92': 'bone',
+}
 
 # Words to exclude (offensive, abbreviations, or poor for memorization)
 BLOCKED_WORDS = {
