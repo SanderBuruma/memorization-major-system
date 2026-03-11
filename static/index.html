@@ -146,7 +146,7 @@ nav button.active{background:var(--color-primary);color:#fff}
              autocomplete="off" spellcheck="false">
       <div>
         <button class="quiz-btn" id="quiz-submit" onclick="checkQuiz()">Submit</button>
-        <button class="quiz-btn skip" onclick="startQuiz()">Skip</button>
+        <button class="quiz-btn skip" onclick="skipQuiz()">Skip</button>
       </div>
       <div class="feedback empty" id="quiz-feedback"></div>
     </div>
@@ -160,7 +160,7 @@ nav button.active{background:var(--color-primary);color:#fff}
              autocomplete="off" spellcheck="false" maxlength="2">
       <div>
         <button class="quiz-btn" id="rev-submit" onclick="checkReverse()">Submit</button>
-        <button class="quiz-btn skip" onclick="startReverse()">Skip</button>
+        <button class="quiz-btn skip" onclick="skipReverse()">Skip</button>
       </div>
       <div class="feedback empty" id="rev-feedback"></div>
     </div>
@@ -216,6 +216,15 @@ let currentQuiz    = null;  // {digits, word}
 let currentReverse = null;  // {digits, word}
 let quizTimer      = null;
 let reverseTimer   = null;
+
+// Pool-based quiz state (independent per quiz type)
+let quizPool = [];           // 10 active keys for forward quiz
+let quizStreaks = {};        // key → consecutive correct count
+let quizMastered = {};       // key → true when graduated
+
+let reversePool = [];        // same for reverse quiz
+let reverseStreaks = {};
+let reverseMastered = {};
 
 /* ================================================================== */
 /*  Init                                                               */
@@ -274,11 +283,49 @@ function showSection(name){
 }
 
 /* ================================================================== */
+/*  Pool helpers                                                       */
+/* ================================================================== */
+function initPool(mastered){
+  var available = keys.filter(function(k){ return !mastered[k]; });
+  // Fisher-Yates shuffle
+  for(var i = available.length - 1; i > 0; i--){
+    var j = Math.floor(Math.random() * (i + 1));
+    var tmp = available[i]; available[i] = available[j]; available[j] = tmp;
+  }
+  return available.slice(0, 10);
+}
+
+function replaceInPool(pool, masteredKey, mastered){
+  var idx = pool.indexOf(masteredKey);
+  if(idx !== -1) pool.splice(idx, 1);
+  var available = keys.filter(function(k){ return !mastered[k] && pool.indexOf(k) === -1; });
+  if(available.length > 0){
+    pool.push(available[Math.floor(Math.random() * available.length)]);
+  }
+}
+
+function pickFromPool(pool, lastKey){
+  if(pool.length === 0) return null;
+  if(pool.length === 1) return pool[0];
+  var pick;
+  do { pick = pool[Math.floor(Math.random() * pool.length)]; } while(pick === lastKey);
+  return pick;
+}
+
+/* ================================================================== */
 /*  Quiz: number -> word                                               */
 /* ================================================================== */
 function startQuiz(){
   clearTimeout(quizTimer);
-  const d = keys[Math.floor(Math.random()*keys.length)];
+  if(quizPool.length === 0){
+    if(Object.keys(quizMastered).length >= keys.length){
+      quizMastered = {}; quizStreaks = {};
+    }
+    quizPool = initPool(quizMastered);
+  }
+  var lastKey = currentQuiz ? currentQuiz.digits : null;
+  const d = pickFromPool(quizPool, lastKey);
+  if(!d) return;
   currentQuiz = {digits:d, word:wordlist[d]};
   document.getElementById('quiz-prompt').textContent = d;
   const inp = document.getElementById('quiz-input');
@@ -299,18 +346,40 @@ function checkQuiz(){
   document.getElementById('quiz-submit').disabled = true;
 
   const correct = currentQuiz.word.toLowerCase();
+  const key = currentQuiz.digits;
   score.total++;
   const fb = document.getElementById('quiz-feedback');
   if(answer === correct){
     score.correct++;
     fb.className = 'feedback correct';
-    fb.textContent = 'Correct!';
+    quizStreaks[key] = (quizStreaks[key] || 0) + 1;
+    if(quizStreaks[key] >= 3){
+      quizMastered[key] = true;
+      replaceInPool(quizPool, key, quizMastered);
+      var masteredKeys = Object.keys(quizMastered);
+      if(masteredKeys.length >= 80){
+        var recycled = masteredKeys[Math.floor(Math.random() * masteredKeys.length)];
+        delete quizMastered[recycled];
+        quizStreaks[recycled] = 0;
+        fb.textContent = 'Correct! Mastered \u2014 recycled "'+recycled+'" back.';
+      } else {
+        fb.textContent = 'Correct! Mastered ('+masteredKeys.length+'/80) \u2014 new word incoming.';
+      }
+    } else {
+      fb.textContent = 'Correct! (streak: '+quizStreaks[key]+'/3)';
+    }
   } else {
     fb.className = 'feedback incorrect';
     fb.textContent = 'Incorrect. Answer: "'+correct+'"';
+    quizStreaks[key] = 0;
   }
   updateScore();
   quizTimer = setTimeout(startQuiz, 1800);
+}
+
+function skipQuiz(){
+  if(currentQuiz) quizStreaks[currentQuiz.digits] = 0;
+  startQuiz();
 }
 
 /* ================================================================== */
@@ -318,7 +387,15 @@ function checkQuiz(){
 /* ================================================================== */
 function startReverse(){
   clearTimeout(reverseTimer);
-  const d = keys[Math.floor(Math.random()*keys.length)];
+  if(reversePool.length === 0){
+    if(Object.keys(reverseMastered).length >= keys.length){
+      reverseMastered = {}; reverseStreaks = {};
+    }
+    reversePool = initPool(reverseMastered);
+  }
+  var lastKey = currentReverse ? currentReverse.digits : null;
+  const d = pickFromPool(reversePool, lastKey);
+  if(!d) return;
   currentReverse = {digits:d, word:wordlist[d]};
   document.getElementById('rev-prompt').textContent = wordlist[d];
   const inp = document.getElementById('rev-input');
@@ -346,13 +423,34 @@ function checkReverse(){
   if(answer === correct){
     score.correct++;
     fb.className = 'feedback correct';
-    fb.textContent = 'Correct!';
+    reverseStreaks[correct] = (reverseStreaks[correct] || 0) + 1;
+    if(reverseStreaks[correct] >= 3){
+      reverseMastered[correct] = true;
+      replaceInPool(reversePool, correct, reverseMastered);
+      var masteredKeys = Object.keys(reverseMastered);
+      if(masteredKeys.length >= 80){
+        var recycled = masteredKeys[Math.floor(Math.random() * masteredKeys.length)];
+        delete reverseMastered[recycled];
+        reverseStreaks[recycled] = 0;
+        fb.textContent = 'Correct! Mastered \u2014 recycled "'+recycled+'" back.';
+      } else {
+        fb.textContent = 'Correct! Mastered ('+masteredKeys.length+'/80) \u2014 new word incoming.';
+      }
+    } else {
+      fb.textContent = 'Correct! (streak: '+reverseStreaks[correct]+'/3)';
+    }
   } else {
     fb.className = 'feedback incorrect';
     fb.textContent = 'Incorrect. Answer: '+correct;
+    reverseStreaks[correct] = 0;
   }
   updateScore();
   reverseTimer = setTimeout(startReverse, 1800);
+}
+
+function skipReverse(){
+  if(currentReverse) reverseStreaks[currentReverse.digits] = 0;
+  startReverse();
 }
 
 /* ================================================================== */
