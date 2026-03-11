@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Major System Trainer</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:system-ui,-apple-system,sans-serif;background:#f0f2f5;color:#1a1a2e;min-height:100vh}
+.container{max-width:1100px;margin:0 auto;padding:20px}
+header{text-align:center;padding:20px 0 10px}
+header h1{font-size:1.8em;color:#1a1a2e;margin-bottom:4px}
+header p{color:#666;font-size:.95em}
+nav{display:flex;gap:8px;justify-content:center;margin:18px 0;flex-wrap:wrap}
+nav button{padding:9px 22px;border:2px solid #3a86ff;background:#fff;color:#3a86ff;
+  cursor:pointer;border-radius:6px;font-size:.95em;font-weight:600;transition:all .15s}
+nav button:hover{background:#edf2ff}
+nav button.active{background:#3a86ff;color:#fff}
+.section{display:none}
+.section.active{display:block}
+
+/* Grid */
+.grid{display:grid;grid-template-columns:repeat(10,1fr);gap:4px}
+.grid-cell{text-align:center;padding:10px 2px;background:#fff;border-radius:6px;
+  border:1px solid #e0e0e0;transition:transform .1s,box-shadow .1s;cursor:default}
+.grid-cell:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(0,0,0,.08)}
+.grid-cell .number{font-weight:700;color:#3a86ff;font-size:1.1em}
+.grid-cell .word{font-size:.82em;color:#444;margin-top:2px}
+
+/* Quiz shared */
+.quiz-area{max-width:480px;margin:0 auto;text-align:center;padding:20px}
+.quiz-prompt{font-size:3.2em;font-weight:700;color:#3a86ff;margin:30px 0 20px;
+  letter-spacing:2px;user-select:none}
+.quiz-input{font-size:1.4em;padding:10px 16px;width:220px;text-align:center;
+  border:2px solid #d0d0d0;border-radius:8px;outline:none;transition:border .15s}
+.quiz-input:focus{border-color:#3a86ff}
+.quiz-btn{padding:10px 28px;font-size:1.1em;background:#3a86ff;color:#fff;
+  border:none;border-radius:8px;cursor:pointer;margin:12px 6px;font-weight:600;transition:background .15s}
+.quiz-btn:hover{background:#265ecf}
+.quiz-btn.skip{background:#888}
+.quiz-btn.skip:hover{background:#666}
+.feedback{font-size:1.15em;margin:18px 0;padding:14px 20px;border-radius:8px;font-weight:600;min-height:52px}
+.feedback.correct{background:#e8f5e9;color:#2e7d32}
+.feedback.incorrect{background:#ffebee;color:#c62828}
+.feedback.empty{background:transparent}
+
+/* Score bar */
+.score-bar{background:#fff;padding:14px 20px;border-radius:8px;text-align:center;
+  margin-top:20px;border:1px solid #e0e0e0;font-size:1em;color:#444}
+.score-bar strong{color:#3a86ff}
+
+/* Reference table */
+.ref-wrap{max-width:520px;margin:0 auto}
+.ref-table{width:100%;border-collapse:collapse;margin-top:10px}
+.ref-table th,.ref-table td{padding:10px 14px;border:1px solid #e0e0e0;text-align:center}
+.ref-table th{background:#3a86ff;color:#fff;font-weight:600}
+.ref-table tr:nth-child(even){background:#f8f9fb}
+
+/* Responsive */
+@media(max-width:700px){
+  .grid{grid-template-columns:repeat(5,1fr)}
+  .quiz-prompt{font-size:2.4em}
+}
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1>Major System Trainer</h1>
+    <p>Memorize 00-99 with concrete noun associations</p>
+  </header>
+
+  <nav>
+    <button class="active" data-section="grid" onclick="showSection('grid')">Grid</button>
+    <button data-section="quiz" onclick="showSection('quiz')">Quiz: # &rarr; Word</button>
+    <button data-section="reverse" onclick="showSection('reverse')">Quiz: Word &rarr; #</button>
+    <button data-section="ref" onclick="showSection('ref')">Reference</button>
+  </nav>
+
+  <!-- GRID ----------------------------------------------------------- -->
+  <div id="section-grid" class="section active">
+    <div id="grid" class="grid"></div>
+  </div>
+
+  <!-- QUIZ: number -> word ------------------------------------------- -->
+  <div id="section-quiz" class="section">
+    <div class="quiz-area">
+      <div class="quiz-prompt" id="quiz-prompt">--</div>
+      <input class="quiz-input" id="quiz-input" placeholder="type the noun..."
+             autocomplete="off" spellcheck="false">
+      <div>
+        <button class="quiz-btn" id="quiz-submit" onclick="checkQuiz()">Submit</button>
+        <button class="quiz-btn skip" onclick="startQuiz()">Skip</button>
+      </div>
+      <div class="feedback empty" id="quiz-feedback"></div>
+    </div>
+  </div>
+
+  <!-- REVERSE QUIZ: word -> number ----------------------------------- -->
+  <div id="section-reverse" class="section">
+    <div class="quiz-area">
+      <div class="quiz-prompt" id="rev-prompt">--</div>
+      <input class="quiz-input" id="rev-input" placeholder="type the number..."
+             autocomplete="off" spellcheck="false" maxlength="2">
+      <div>
+        <button class="quiz-btn" id="rev-submit" onclick="checkReverse()">Submit</button>
+        <button class="quiz-btn skip" onclick="startReverse()">Skip</button>
+      </div>
+      <div class="feedback empty" id="rev-feedback"></div>
+    </div>
+  </div>
+
+  <!-- REFERENCE ------------------------------------------------------ -->
+  <div id="section-ref" class="section">
+    <div class="ref-wrap">
+      <table class="ref-table" id="ref-table">
+        <thead><tr><th>Digit</th><th>Consonant Sounds</th></tr></thead>
+        <tbody id="ref-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- SCORE ---------------------------------------------------------- -->
+  <div class="score-bar" id="score-bar">
+    Score: <strong id="score-text">0 / 0 (0%)</strong>
+  </div>
+</div>
+
+<script>
+/* ================================================================== */
+/*  State                                                              */
+/* ================================================================== */
+let wordlist = {};
+let mapping  = {};
+let keys     = [];          // ["00","01",...,"99"]
+let score    = {correct:0, total:0};
+let currentQuiz    = null;  // {digits, word}
+let currentReverse = null;  // {digits, word}
+let quizTimer      = null;
+let reverseTimer   = null;
+
+/* ================================================================== */
+/*  Init                                                               */
+/* ================================================================== */
+async function init(){
+  const [wlRes, mapRes] = await Promise.all([
+    fetch('/api/wordlist'), fetch('/api/mapping')
+  ]);
+  wordlist = await wlRes.json();
+  mapping  = await mapRes.json();
+  keys     = Object.keys(wordlist).sort();
+  renderGrid();
+  renderRef();
+  updateScore();
+}
+
+/* ================================================================== */
+/*  Grid                                                               */
+/* ================================================================== */
+function renderGrid(){
+  const g = document.getElementById('grid');
+  g.innerHTML = '';
+  for(let i=0;i<100;i++){
+    const d = String(i).padStart(2,'0');
+    const w = wordlist[d] || '???';
+    const c = document.createElement('div');
+    c.className = 'grid-cell';
+    c.innerHTML = '<div class="number">'+d+'</div><div class="word">'+w+'</div>';
+    g.appendChild(c);
+  }
+}
+
+/* ================================================================== */
+/*  Reference table                                                    */
+/* ================================================================== */
+function renderRef(){
+  const b = document.getElementById('ref-body');
+  b.innerHTML = '';
+  for(let d=0;d<=9;d++){
+    const tr = document.createElement('tr');
+    tr.innerHTML = '<td><strong>'+d+'</strong></td><td>'+mapping[String(d)]+'</td>';
+    b.appendChild(tr);
+  }
+}
+
+/* ================================================================== */
+/*  Section switching                                                  */
+/* ================================================================== */
+function showSection(name){
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.getElementById('section-'+name).classList.add('active');
+  document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active'));
+  document.querySelector('[data-section="'+name+'"]').classList.add('active');
+  if(name==='quiz')    startQuiz();
+  if(name==='reverse') startReverse();
+}
+
+/* ================================================================== */
+/*  Quiz: number -> word                                               */
+/* ================================================================== */
+function startQuiz(){
+  clearTimeout(quizTimer);
+  const d = keys[Math.floor(Math.random()*keys.length)];
+  currentQuiz = {digits:d, word:wordlist[d]};
+  document.getElementById('quiz-prompt').textContent = d;
+  const inp = document.getElementById('quiz-input');
+  inp.value = '';
+  inp.disabled = false;
+  document.getElementById('quiz-submit').disabled = false;
+  document.getElementById('quiz-feedback').className = 'feedback empty';
+  document.getElementById('quiz-feedback').textContent = '';
+  inp.focus();
+}
+
+function checkQuiz(){
+  if(!currentQuiz) return;
+  const inp = document.getElementById('quiz-input');
+  const answer = inp.value.trim().toLowerCase();
+  if(!answer) return;
+  inp.disabled = true;
+  document.getElementById('quiz-submit').disabled = true;
+
+  const correct = currentQuiz.word.toLowerCase();
+  score.total++;
+  const fb = document.getElementById('quiz-feedback');
+  if(answer === correct){
+    score.correct++;
+    fb.className = 'feedback correct';
+    fb.textContent = 'Correct!';
+  } else {
+    fb.className = 'feedback incorrect';
+    fb.textContent = 'Incorrect. Answer: "'+correct+'"';
+  }
+  updateScore();
+  quizTimer = setTimeout(startQuiz, 1800);
+}
+
+/* ================================================================== */
+/*  Reverse quiz: word -> number                                       */
+/* ================================================================== */
+function startReverse(){
+  clearTimeout(reverseTimer);
+  const d = keys[Math.floor(Math.random()*keys.length)];
+  currentReverse = {digits:d, word:wordlist[d]};
+  document.getElementById('rev-prompt').textContent = wordlist[d];
+  const inp = document.getElementById('rev-input');
+  inp.value = '';
+  inp.disabled = false;
+  document.getElementById('rev-submit').disabled = false;
+  document.getElementById('rev-feedback').className = 'feedback empty';
+  document.getElementById('rev-feedback').textContent = '';
+  inp.focus();
+}
+
+function checkReverse(){
+  if(!currentReverse) return;
+  const inp = document.getElementById('rev-input');
+  const raw = inp.value.trim();
+  if(!raw) return;
+  inp.disabled = true;
+  document.getElementById('rev-submit').disabled = true;
+
+  // Accept "7" or "07" for "07"
+  const answer = raw.padStart(2,'0');
+  const correct = currentReverse.digits;
+  score.total++;
+  const fb = document.getElementById('rev-feedback');
+  if(answer === correct){
+    score.correct++;
+    fb.className = 'feedback correct';
+    fb.textContent = 'Correct!';
+  } else {
+    fb.className = 'feedback incorrect';
+    fb.textContent = 'Incorrect. Answer: '+correct;
+  }
+  updateScore();
+  reverseTimer = setTimeout(startReverse, 1800);
+}
+
+/* ================================================================== */
+/*  Score                                                              */
+/* ================================================================== */
+function updateScore(){
+  const pct = score.total>0 ? Math.round(score.correct/score.total*100) : 0;
+  document.getElementById('score-text').textContent =
+    score.correct+' / '+score.total+' ('+pct+'%)';
+}
+
+/* ================================================================== */
+/*  Keyboard: Enter = submit                                           */
+/* ================================================================== */
+document.getElementById('quiz-input').addEventListener('keydown', function(e){
+  if(e.key==='Enter') checkQuiz();
+});
+document.getElementById('rev-input').addEventListener('keydown', function(e){
+  if(e.key==='Enter') checkReverse();
+});
+
+/* ================================================================== */
+/*  Boot                                                               */
+/* ================================================================== */
+init();
+</script>
+</body>
+</html>
