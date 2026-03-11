@@ -24,10 +24,10 @@ WORDLIST_PATH = Path(__file__).parent / 'wordlist.json'
 MANUAL_OVERRIDES = {
     '03': 'seam',   '04': 'czar',   '07': 'sock',   '08': 'sofa',
     '09': 'soap',   '10': 'dice',   '14': 'door',   '15': 'doll',
-    '17': 'dog',    '20': 'nose',   '28': 'knife',  '33': 'mom',
-    '34': 'mare',   '40': 'rose',   '49': 'rope',   '52': 'lion',
-    '54': 'lair',   '60': 'cheese', '66': 'judge',  '69': 'ship',
-    '92': 'bone',
+    '17': 'dog',    '20': 'nose',   '22': 'noon',   '28': 'knife',
+    '33': 'mom',    '34': 'mare',   '38': 'movie',  '40': 'rose',
+    '49': 'rope',   '52': 'lion',   '54': 'lair',   '60': 'cheese',
+    '66': 'judge',  '69': 'ship',   '92': 'bone',
 }
 
 # Words to exclude (offensive, abbreviations, or poor for memorization)
@@ -50,14 +50,25 @@ def ensure_nltk_data():
             nltk.download(name, quiet=True)
 
 
+CONCRETE_ROOTS = {
+    wn.synset('physical_entity.n.01'),
+    wn.synset('social_group.n.01'),
+    wn.synset('person.n.01'),
+    wn.synset('organism.n.01'),
+    wn.synset('imaginary_being.n.01'),
+    wn.synset('spiritual_being.n.01'),
+    wn.synset('causal_agent.n.01'),
+    wn.synset('clock_time.n.01'),
+}
+
+
 def is_concrete_noun_synset(synset):
-    """Check whether *synset* traces to physical_entity.n.01 via hypernyms."""
-    target = wn.synset('physical_entity.n.01')
+    """Check whether *synset* traces to an accepted concrete root via hypernyms."""
     visited = set()
     queue = [synset]
     while queue:
         current = queue.pop(0)
-        if current == target:
+        if current in CONCRETE_ROOTS:
             return True
         if current in visited:
             continue

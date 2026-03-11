@@ -93,7 +93,7 @@ class TestMajorSystemAssociations(unittest.TestCase):
     # ------------------------------------------------------------------
 
     def test_all_words_are_concrete(self):
-        """Every word must trace to physical_entity.n.01 via hypernyms."""
+        """Every word must trace to an accepted concrete root via hypernyms."""
         for num in range(100):
             digits = number_to_digits(num)
             word = self.wordlist.get(digits)
