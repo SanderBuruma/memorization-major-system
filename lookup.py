@@ -64,13 +64,20 @@ def lookup_number(digits):
     concrete_set = set(concrete_list)
     other = [w for w in all_matches if w not in concrete_set]
     print(f"\n  Other CMU dict matches ({len(other)}):")
-    for w in other[:30]:
+    # Build display strings for each word
+    entries = []
+    for w in other:
         noun = is_word_noun(w)
         tag = " [noun]" if noun else ""
         star = " *" if w == current else ""
-        print(f"    {w}{tag}{star}")
-    if len(other) > 30:
-        print(f"    ... and {len(other) - 30} more")
+        entries.append(f"{w}{tag}{star}")
+    # Print in columns
+    if entries:
+        col_width = max(len(e) for e in entries) + 2
+        cols = max(1, 80 // col_width)
+        for i in range(0, len(entries), cols):
+            row = entries[i:i + cols]
+            print("    " + "".join(e.ljust(col_width) for e in row).rstrip())
     print()
 
 
