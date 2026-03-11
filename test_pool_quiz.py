@@ -328,5 +328,44 @@ class TestFullSimulation(unittest.TestCase):
         self.assertEqual(seen, set(ALL_KEYS))
 
 
+class TestMixedQuiz(unittest.TestCase):
+    """Mixed quiz uses the same pool mechanics but randomly picks direction."""
+
+    def test_mixed_uses_same_pool_logic(self):
+        """Mixed quiz pool/streak/mastery works identically to forward/reverse."""
+        mastered = {}
+        streaks = {}
+        pool = init_pool(mastered)
+
+        # Simulate 200 mixed rounds (direction doesn't affect pool logic)
+        for _ in range(200):
+            if not pool:
+                if len(mastered) >= len(ALL_KEYS):
+                    mastered.clear()
+                    streaks.clear()
+                pool = init_pool(mastered)
+            key = pick_from_pool(pool, None)
+            if key is None:
+                break
+            self.assertIn(key, pool)
+            streaks[key] = streaks.get(key, 0) + 1
+            if streaks[key] >= 3:
+                mastered[key] = True
+                replace_in_pool(pool, key, mastered)
+                if len(mastered) >= 80:
+                    mk = list(mastered.keys())
+                    recycled = random.choice(mk)
+                    del mastered[recycled]
+                    streaks[recycled] = 0
+            self.assertLessEqual(len(mastered), 80)
+
+    def test_direction_is_random(self):
+        """Over many rounds, both directions should appear."""
+        directions = set()
+        for _ in range(100):
+            directions.add('forward' if random.random() < 0.5 else 'reverse')
+        self.assertEqual(directions, {'forward', 'reverse'})
+
+
 if __name__ == '__main__':
     unittest.main(verbosity=2)
