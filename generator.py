@@ -29,8 +29,8 @@ MANUAL_OVERRIDES = {
     '38': 'movie',  '39': 'mob',    '40': 'rose',   '47': 'rock',
     '49': 'rope',   '52': 'lion',   '54': 'lair',   '60': 'cheese',
     '62': 'genie',  '66': 'judge',  '69': 'ship',   '71': 'cat',
-    '73': 'game',   '88': 'five',   '92': 'bone',   '95': 'ball',
-    '99': 'boob',
+    '44': 'roar',   '73': 'game',   '88': 'five',   '92': 'bone',
+    '95': 'ball',   '99': 'boob',
 }
 
 # Words to exclude (offensive, abbreviations, or poor for memorization)
@@ -62,6 +62,7 @@ _CONCRETE_ROOT_NAMES = (
     'spiritual_being.n.01',
     'causal_agent.n.01',
     'clock_time.n.01',
+    'sound.n.04',
 )
 _concrete_roots = None
 
