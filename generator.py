@@ -50,25 +50,34 @@ def ensure_nltk_data():
             nltk.download(name, quiet=True)
 
 
-CONCRETE_ROOTS = {
-    wn.synset('physical_entity.n.01'),
-    wn.synset('social_group.n.01'),
-    wn.synset('person.n.01'),
-    wn.synset('organism.n.01'),
-    wn.synset('imaginary_being.n.01'),
-    wn.synset('spiritual_being.n.01'),
-    wn.synset('causal_agent.n.01'),
-    wn.synset('clock_time.n.01'),
-}
+_CONCRETE_ROOT_NAMES = (
+    'physical_entity.n.01',
+    'social_group.n.01',
+    'person.n.01',
+    'organism.n.01',
+    'imaginary_being.n.01',
+    'spiritual_being.n.01',
+    'causal_agent.n.01',
+    'clock_time.n.01',
+)
+_concrete_roots = None
+
+
+def _get_concrete_roots():
+    global _concrete_roots
+    if _concrete_roots is None:
+        _concrete_roots = {wn.synset(name) for name in _CONCRETE_ROOT_NAMES}
+    return _concrete_roots
 
 
 def is_concrete_noun_synset(synset):
     """Check whether *synset* traces to an accepted concrete root via hypernyms."""
+    roots = _get_concrete_roots()
     visited = set()
     queue = [synset]
     while queue:
         current = queue.pop(0)
-        if current in CONCRETE_ROOTS:
+        if current in roots:
             return True
         if current in visited:
             continue
