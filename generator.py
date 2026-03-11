@@ -24,10 +24,13 @@ WORDLIST_PATH = Path(__file__).parent / 'wordlist.json'
 MANUAL_OVERRIDES = {
     '03': 'seam',   '04': 'czar',   '07': 'sock',   '08': 'sofa',
     '09': 'soap',   '10': 'dice',   '14': 'door',   '15': 'doll',
-    '17': 'dog',    '20': 'nose',   '22': 'noon',   '28': 'knife',
-    '33': 'mom',    '34': 'mare',   '38': 'movie',  '40': 'rose',
+    '17': 'dog',    '18': 'dove',   '19': 'tap',    '20': 'nose',
+    '22': 'noon',   '28': 'knife',  '33': 'mom',    '34': 'mare',
+    '38': 'movie',  '39': 'mob',    '40': 'rose',   '47': 'rock',
     '49': 'rope',   '52': 'lion',   '54': 'lair',   '60': 'cheese',
-    '66': 'judge',  '69': 'ship',   '92': 'bone',
+    '62': 'genie',  '66': 'judge',  '69': 'ship',   '71': 'cat',
+    '73': 'game',   '88': 'five',   '92': 'bone',   '95': 'ball',
+    '99': 'boob',
 }
 
 # Words to exclude (offensive, abbreviations, or poor for memorization)
