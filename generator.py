@@ -25,7 +25,7 @@ MANUAL_OVERRIDES = {
     '03': 'seam',   '04': 'czar',   '07': 'sock',   '08': 'sofa',
     '09': 'soap',   '10': 'dice',   '14': 'door',   '15': 'doll',
     '17': 'dog',    '18': 'dove',   '19': 'tap',    '20': 'nose',
-    '22': 'noon',   '28': 'knife',  '33': 'mom',    '34': 'mare',
+    '22': 'nun',    '28': 'knife',  '33': 'mom',    '34': 'mare',
     '38': 'movie',  '39': 'mob',    '40': 'rose',   '47': 'rock',
     '49': 'rope',   '52': 'lion',   '54': 'lair',   '60': 'cheese',
     '62': 'genie',  '66': 'judge',  '69': 'ship',   '71': 'cat',
