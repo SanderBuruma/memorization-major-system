@@ -709,7 +709,8 @@ function startCon(){
   var pick = pickFromPool(conPool, lastKey);
   if(!pick) return;
   currentCon = pick;
-  document.getElementById('con-prompt').textContent = pick;
+  var conDisplay = {C:'C (hard)',G:'G (hard)'};
+  document.getElementById('con-prompt').textContent = conDisplay[pick] || pick;
   var inp = document.getElementById('con-input');
   inp.value = '';
   inp.disabled = false;
