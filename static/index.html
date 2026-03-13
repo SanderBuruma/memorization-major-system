@@ -58,11 +58,17 @@ body{font-family:system-ui,-apple-system,sans-serif;background:var(--bg-page);co
 header{text-align:center;padding:20px 0 10px}
 header h1{font-size:1.8em;color:var(--text-primary);margin-bottom:4px}
 header p{color:var(--text-secondary);font-size:.95em}
-nav{display:flex;gap:8px;justify-content:center;margin:18px 0;flex-wrap:wrap}
+nav{display:flex;gap:8px;justify-content:center;margin:18px 0 0;flex-wrap:wrap}
 nav button{padding:9px 22px;border:2px solid var(--color-primary);background:var(--bg-surface);color:var(--color-primary);
   cursor:pointer;border-radius:6px;font-size:.95em;font-weight:600;transition:all .15s}
 nav button:hover{background:var(--bg-nav-hover)}
 nav button.active{background:var(--color-primary);color:#fff}
+.subnav{display:none;gap:8px;justify-content:center;margin:8px 0 18px;flex-wrap:wrap}
+.subnav.visible{display:flex}
+.subnav button{padding:7px 18px;border:2px solid var(--border-color);background:var(--bg-surface);color:var(--text-secondary);
+  cursor:pointer;border-radius:6px;font-size:.88em;font-weight:600;transition:all .15s}
+.subnav button:hover{background:var(--bg-nav-hover);border-color:var(--color-primary);color:var(--color-primary)}
+.subnav button.active{background:var(--color-primary);color:#fff;border-color:var(--color-primary)}
 .section{display:none}
 .section.active{display:block}
 
@@ -128,12 +134,15 @@ nav button.active{background:var(--color-primary);color:#fff}
 
   <nav>
     <button class="active" data-section="grid" onclick="showSection('grid')">Grid</button>
-    <button data-section="quiz" onclick="showSection('quiz')">Quiz: # &rarr; Word</button>
-    <button data-section="reverse" onclick="showSection('reverse')">Quiz: Word &rarr; #</button>
-    <button data-section="mixed" onclick="showSection('mixed')">Quiz: Mixed</button>
-    <button data-section="consonant" onclick="showSection('consonant')">Quiz: Sound &rarr; #</button>
+    <button data-section="quiz-nav" onclick="showQuizNav()">Quiz</button>
     <button data-section="ref" onclick="showSection('ref')">Reference</button>
   </nav>
+  <div class="subnav" id="subnav">
+    <button data-section="quiz" onclick="showSection('quiz')"># &rarr; Word</button>
+    <button data-section="reverse" onclick="showSection('reverse')">Word &rarr; #</button>
+    <button data-section="mixed" onclick="showSection('mixed')">Mixed</button>
+    <button data-section="consonant" onclick="showSection('consonant')">Sound &rarr; #</button>
+  </div>
 
   <!-- GRID ----------------------------------------------------------- -->
   <div id="section-grid" class="section active">
@@ -359,15 +368,42 @@ function renderRef(){
 /* ================================================================== */
 /*  Section switching                                                  */
 /* ================================================================== */
+var quizSections = ['quiz','reverse','mixed','consonant'];
+
 function showSection(name){
   document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
   document.getElementById('section-'+name).classList.add('active');
+  // Update main nav
   document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active'));
-  document.querySelector('[data-section="'+name+'"]').classList.add('active');
+  var isQuiz = quizSections.indexOf(name) !== -1;
+  if(isQuiz){
+    document.querySelector('[data-section="quiz-nav"]').classList.add('active');
+    document.getElementById('subnav').classList.add('visible');
+  } else {
+    document.querySelector('[data-section="'+name+'"]').classList.add('active');
+    document.getElementById('subnav').classList.remove('visible');
+  }
+  // Update subnav
+  document.querySelectorAll('.subnav button').forEach(b=>b.classList.remove('active'));
+  var sub = document.querySelector('.subnav [data-section="'+name+'"]');
+  if(sub) sub.classList.add('active');
   if(name==='quiz')    startQuiz();
   if(name==='reverse') startReverse();
   if(name==='mixed')   startMixed();
   if(name==='consonant') startCon();
+}
+
+function showQuizNav(){
+  // Show subnav and activate first quiz mode
+  var sub = document.getElementById('subnav');
+  if(sub.classList.contains('visible')){
+    // Already showing quiz subnav — find active sub-mode or default
+    var active = sub.querySelector('button.active');
+    if(active) showSection(active.getAttribute('data-section'));
+    else showSection('quiz');
+  } else {
+    showSection('quiz');
+  }
 }
 
 /* ================================================================== */
