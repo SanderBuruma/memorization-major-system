@@ -15,7 +15,7 @@ from validator import word_to_digits, word_to_phonemes, number_to_digits, phonem
 from generator import (
     ensure_nltk_data, is_word_concrete, is_word_noun,
     get_concrete_nouns, build_candidate_map, select_best_word,
-    WORDLIST_PATH, MANUAL_OVERRIDES,
+    WORDLIST_PATH,
 )
 
 _CMU_DICT = cmudict.dict()
@@ -35,9 +35,7 @@ def lookup_number(digits):
 
     print(f"\n=== {digits} ===")
     if current:
-        is_override = digits in MANUAL_OVERRIDES
-        tag = " (manual override)" if is_override else ""
-        print(f"  Current wordlist: {current}{tag}")
+        print(f"  Current wordlist: {current}")
     else:
         print("  Current wordlist: (none)")
 

@@ -19,20 +19,6 @@ logger = logging.getLogger(__name__)
 
 WORDLIST_PATH = Path(__file__).parent / 'wordlist.json'
 
-# Manual overrides for numbers where the automatic search yields poor results.
-# Each value must still pass all validation (noun, concrete, encoding).
-MANUAL_OVERRIDES = {
-    '03': 'seam',   '04': 'czar',   '07': 'sock',   '08': 'sofa',
-    '09': 'soap',   '10': 'dice',   '14': 'door',   '15': 'doll',
-    '17': 'dog',    '18': 'dove',   '19': 'tap',    '20': 'nose',
-    '22': 'nun',    '28': 'nave',   '33': 'mom',    '34': 'mare',
-    '38': 'movie',  '39': 'mob',    '40': 'rose',   '47': 'rock',
-    '49': 'rope',   '52': 'lion',   '54': 'lair',   '60': 'cheese',
-    '62': 'genie',  '66': 'judge',  '69': 'ship',   '71': 'cat',
-    '44': 'roar',   '73': 'game',   '88': 'five',   '92': 'bone',
-    '95': 'ball',   '99': 'boob',
-}
-
 # Words to exclude (offensive, abbreviations, or poor for memorization)
 BLOCKED_WORDS = {
     'jap', 'fag', 'coon', 'spic', 'kike',          # slurs
@@ -142,9 +128,18 @@ def select_best_word(candidates):
 def generate_wordlist(seed=42):
     """Generate the complete 00-99 Major System wordlist.
 
+    Preserves existing valid entries from wordlist.json (the single source of
+    truth) and only auto-fills missing or invalid slots.
+
     Returns a dict mapping ``"00"``-``"99"`` to noun strings (or None).
     """
     random.seed(seed)
+
+    # Load existing wordlist to preserve manual picks
+    existing = {}
+    if WORDLIST_PATH.exists():
+        with open(WORDLIST_PATH) as f:
+            existing = json.load(f)
 
     logger.info("Loading concrete nouns from WordNet...")
     nouns = get_concrete_nouns()
@@ -160,9 +155,10 @@ def generate_wordlist(seed=42):
     for num in range(100):
         digits = number_to_digits(num)
 
-        if digits in MANUAL_OVERRIDES:
-            wordlist[digits] = MANUAL_OVERRIDES[digits]
-            logger.info("  %s -> %s (manual)", digits, MANUAL_OVERRIDES[digits])
+        # Keep existing entry if it has a valid encoding
+        if digits in existing and existing[digits] and word_to_digits(existing[digits]) == digits:
+            wordlist[digits] = existing[digits]
+            logger.info("  %s -> %s (existing)", digits, existing[digits])
             continue
 
         if digits in candidates and candidates[digits]:
