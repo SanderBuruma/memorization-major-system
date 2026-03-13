@@ -131,6 +131,7 @@ nav button.active{background:var(--color-primary);color:#fff}
     <button data-section="quiz" onclick="showSection('quiz')">Quiz: # &rarr; Word</button>
     <button data-section="reverse" onclick="showSection('reverse')">Quiz: Word &rarr; #</button>
     <button data-section="mixed" onclick="showSection('mixed')">Quiz: Mixed</button>
+    <button data-section="consonant" onclick="showSection('consonant')">Quiz: Sound &rarr; #</button>
     <button data-section="ref" onclick="showSection('ref')">Reference</button>
   </nav>
 
@@ -178,6 +179,20 @@ nav button.active{background:var(--color-primary);color:#fff}
         <button class="quiz-btn skip" onclick="skipMixed()">Skip</button>
       </div>
       <div class="feedback empty" id="mix-feedback"></div>
+    </div>
+  </div>
+
+  <!-- CONSONANT QUIZ: sound -> digit --------------------------------- -->
+  <div id="section-consonant" class="section">
+    <div class="quiz-area">
+      <div class="quiz-prompt" id="con-prompt">--</div>
+      <input class="quiz-input" id="con-input" placeholder="type the digit..."
+             autocomplete="off" spellcheck="false" maxlength="1">
+      <div>
+        <button class="quiz-btn" id="con-submit" onclick="checkCon()">Submit</button>
+        <button class="quiz-btn skip" onclick="skipCon()">Skip</button>
+      </div>
+      <div class="feedback empty" id="con-feedback"></div>
     </div>
   </div>
 
@@ -247,6 +262,14 @@ let mixedPool = [];          // same for mixed quiz
 let mixedStreaks = {};
 let mixedMastered = {};
 
+let conPool = [];            // consonant quiz
+let conStreaks = {};
+let conMastered = {};
+let currentCon = null;
+let conTimer = null;
+let conKeys = [];            // ["S","Z","T","D","TH",...]
+let conMap = {};             // {"S":"0","Z":"0","T":"1",...}
+
 /* ================================================================== */
 /*  Persistence                                                        */
 /* ================================================================== */
@@ -255,7 +278,8 @@ function saveState(){
     score: score,
     quizPool: quizPool, quizStreaks: quizStreaks, quizMastered: quizMastered,
     reversePool: reversePool, reverseStreaks: reverseStreaks, reverseMastered: reverseMastered,
-    mixedPool: mixedPool, mixedStreaks: mixedStreaks, mixedMastered: mixedMastered
+    mixedPool: mixedPool, mixedStreaks: mixedStreaks, mixedMastered: mixedMastered,
+    conPool: conPool, conStreaks: conStreaks, conMastered: conMastered
   }));
 }
 
@@ -273,6 +297,9 @@ function loadState(){
     mixedPool = s.mixedPool || [];
     mixedStreaks = s.mixedStreaks || {};
     mixedMastered = s.mixedMastered || {};
+    conPool = s.conPool || [];
+    conStreaks = s.conStreaks || {};
+    conMastered = s.conMastered || {};
   } catch(e){}
 }
 
@@ -286,6 +313,14 @@ async function init(){
   wordlist = await wlRes.json();
   mapping  = await mapRes.json();
   keys     = Object.keys(wordlist).sort();
+  // Build consonant→digit lookup
+  conKeys = []; conMap = {};
+  for(var digit in mapping){
+    mapping[digit].split(', ').forEach(function(c){
+      conKeys.push(c);
+      conMap[c] = digit;
+    });
+  }
   loadState();
   renderGrid();
   renderRef();
@@ -332,6 +367,7 @@ function showSection(name){
   if(name==='quiz')    startQuiz();
   if(name==='reverse') startReverse();
   if(name==='mixed')   startMixed();
+  if(name==='consonant') startCon();
 }
 
 /* ================================================================== */
@@ -603,6 +639,99 @@ function skipMixed(){
 }
 
 /* ================================================================== */
+/*  Consonant quiz: sound -> digit                                     */
+/* ================================================================== */
+function initConPool(mastered){
+  var available = conKeys.filter(function(k){ return !mastered[k]; });
+  for(var i = available.length - 1; i > 0; i--){
+    var j = Math.floor(Math.random() * (i + 1));
+    var tmp = available[i]; available[i] = available[j]; available[j] = tmp;
+  }
+  return available.slice(0, 10);
+}
+
+function replaceInConPool(pool, masteredKey, mastered){
+  var idx = pool.indexOf(masteredKey);
+  if(idx !== -1) pool.splice(idx, 1);
+  var available = conKeys.filter(function(k){ return !mastered[k] && pool.indexOf(k) === -1; });
+  if(available.length > 0){
+    pool.push(available[Math.floor(Math.random() * available.length)]);
+  }
+}
+
+function startCon(){
+  clearTimeout(conTimer);
+  var masteryThreshold = conKeys.length - 4;
+  if(conPool.length === 0){
+    if(Object.keys(conMastered).length >= conKeys.length){
+      conMastered = {}; conStreaks = {};
+    }
+    conPool = initConPool(conMastered);
+    saveState();
+  }
+  var lastKey = currentCon;
+  var pick = pickFromPool(conPool, lastKey);
+  if(!pick) return;
+  currentCon = pick;
+  document.getElementById('con-prompt').textContent = pick;
+  var inp = document.getElementById('con-input');
+  inp.value = '';
+  inp.disabled = false;
+  document.getElementById('con-submit').disabled = false;
+  document.getElementById('con-feedback').className = 'feedback empty';
+  document.getElementById('con-feedback').textContent = '';
+  inp.focus();
+}
+
+function checkCon(){
+  if(!currentCon) return;
+  var inp = document.getElementById('con-input');
+  var answer = inp.value.trim();
+  if(!answer) return;
+  inp.disabled = true;
+  document.getElementById('con-submit').disabled = true;
+
+  var correct = conMap[currentCon];
+  var key = currentCon;
+  var masteryThreshold = conKeys.length - 4;
+  score.total++;
+  var fb = document.getElementById('con-feedback');
+  if(answer === correct){
+    score.correct++;
+    fb.className = 'feedback correct';
+    conStreaks[key] = (conStreaks[key] || 0) + 1;
+    if(conStreaks[key] >= 3){
+      conMastered[key] = true;
+      replaceInConPool(conPool, key, conMastered);
+      var masteredKeys = Object.keys(conMastered);
+      if(masteredKeys.length >= masteryThreshold){
+        var recycled = masteredKeys[Math.floor(Math.random() * masteredKeys.length)];
+        delete conMastered[recycled];
+        conStreaks[recycled] = 0;
+        fb.textContent = 'Correct! Mastered \u2014 recycled "'+recycled+'" back.';
+      } else {
+        fb.textContent = 'Correct! Mastered ('+masteredKeys.length+'/'+masteryThreshold+') \u2014 new sound incoming.';
+      }
+    } else {
+      fb.textContent = 'Correct! (streak: '+conStreaks[key]+'/3)';
+    }
+  } else {
+    fb.className = 'feedback incorrect';
+    fb.textContent = 'Incorrect. Answer: '+correct;
+    conStreaks[key] = 0;
+  }
+  updateScore();
+  saveState();
+  conTimer = setTimeout(startCon, 1800);
+}
+
+function skipCon(){
+  if(currentCon) conStreaks[currentCon] = 0;
+  saveState();
+  startCon();
+}
+
+/* ================================================================== */
 /*  Score                                                              */
 /* ================================================================== */
 function updateScore(){
@@ -622,6 +751,9 @@ document.getElementById('rev-input').addEventListener('keydown', function(e){
 });
 document.getElementById('mix-input').addEventListener('keydown', function(e){
   if(e.key==='Enter') checkMixed();
+});
+document.getElementById('con-input').addEventListener('keydown', function(e){
+  if(e.key==='Enter') checkCon();
 });
 
 /* ================================================================== */
