@@ -110,6 +110,16 @@ nav button.active{background:var(--color-primary);color:#fff}
 .ref-table th{background:var(--color-primary);color:#fff;font-weight:600}
 .ref-table tr:nth-child(even){background:var(--bg-stripe)}
 
+/* Translate */
+.translate-area{max-width:600px;margin:0 auto;text-align:center;padding:20px}
+.translate-output{margin-top:20px;display:flex;flex-wrap:wrap;gap:10px;justify-content:center}
+.translate-chip{background:var(--bg-surface);border:1px solid var(--border-color);border-radius:8px;
+  padding:12px 16px;text-align:center;min-width:70px}
+.translate-chip .number{font-weight:700;color:var(--color-primary);font-size:1.1em}
+.translate-chip .word{font-size:.88em;color:var(--text-muted);margin-top:4px}
+.translate-chip.odd{color:var(--text-secondary);font-style:italic;font-size:.9em;
+  display:flex;align-items:center;padding:8px 12px;min-width:auto}
+
 /* Theme toggle */
 .theme-toggle{position:fixed;top:14px;right:14px;width:40px;height:40px;border-radius:50%;
   border:1px solid var(--border-color);background:var(--bg-surface);cursor:pointer;
@@ -136,6 +146,7 @@ nav button.active{background:var(--color-primary);color:#fff}
     <button class="active" data-section="grid" onclick="showSection('grid')">Grid</button>
     <button data-section="quiz-nav" onclick="showQuizNav()">Quiz</button>
     <button data-section="ref" onclick="showSection('ref')">Reference</button>
+    <button data-section="translate" onclick="showSection('translate')">Translate</button>
   </nav>
   <div class="subnav" id="subnav">
     <button data-section="quiz" onclick="showSection('quiz')"># &rarr; Word</button>
@@ -212,6 +223,15 @@ nav button.active{background:var(--color-primary);color:#fff}
         <thead><tr><th>Digit</th><th>Consonant Sounds</th></tr></thead>
         <tbody id="ref-body"></tbody>
       </table>
+    </div>
+  </div>
+
+  <!-- TRANSLATE ------------------------------------------------------ -->
+  <div id="section-translate" class="section">
+    <div class="translate-area">
+      <input class="quiz-input" id="translate-input" placeholder="type numbers..."
+             autocomplete="off" spellcheck="false" style="width:100%;max-width:400px;font-size:1.2em">
+      <div id="translate-output" class="translate-output"></div>
     </div>
   </div>
 
@@ -791,6 +811,30 @@ document.getElementById('mix-input').addEventListener('keydown', function(e){
 });
 document.getElementById('con-input').addEventListener('keydown', function(e){
   if(e.key==='Enter') checkCon();
+});
+
+/* ================================================================== */
+/*  Translate: number string -> nouns                                  */
+/* ================================================================== */
+document.getElementById('translate-input').addEventListener('input', function(){
+  var raw = this.value.replace(/[^0-9]/g, '');
+  var out = document.getElementById('translate-output');
+  out.innerHTML = '';
+  if(!raw) return;
+  // Split into 2-digit pairs; if odd length, last digit stands alone
+  for(var i = 0; i < raw.length; i += 2){
+    var chunk = raw.substr(i, 2);
+    var chip = document.createElement('div');
+    if(chunk.length === 2){
+      var w = wordlist[chunk] || '???';
+      chip.className = 'translate-chip';
+      chip.innerHTML = '<div class="number">'+chunk+'</div><div class="word">'+w+'</div>';
+    } else {
+      chip.className = 'translate-chip odd';
+      chip.textContent = chunk + '?';
+    }
+    out.appendChild(chip);
+  }
 });
 
 /* ================================================================== */
