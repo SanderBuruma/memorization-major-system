@@ -3,6 +3,8 @@ name: Deploy
 on:
   push:
     branches: [master]
+    paths-ignore:
+      - '**.md'
   workflow_dispatch:
 
 jobs:
@@ -14,7 +16,7 @@ jobs:
         with:
           python-version: '3.13'
       - run: pip install -r requirements.txt
-      - run: python -m unittest test_associations
+      - run: python -m unittest discover
 
   deploy:
     needs: test
