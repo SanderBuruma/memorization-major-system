@@ -278,22 +278,18 @@ let quizTimer      = null;
 let reverseTimer   = null;
 let mixedTimer     = null;
 
-// Pool-based quiz state (independent per quiz type)
-let quizPool = [];           // 10 active keys for forward quiz
-let quizStreaks = {};        // key → consecutive correct count
-let quizMastered = {};       // key → true when graduated
+// Score-based quiz state (independent per quiz type)
+let quizScores = {};         // key → score (default 0)
+let quizHistory = [];        // last 10 shown keys (FIFO)
 
-let reversePool = [];        // same for reverse quiz
-let reverseStreaks = {};
-let reverseMastered = {};
+let reverseScores = {};
+let reverseHistory = [];
 
-let mixedPool = [];          // same for mixed quiz
-let mixedStreaks = {};
-let mixedMastered = {};
+let mixedScores = {};
+let mixedHistory = [];
 
-let conPool = [];            // consonant quiz
-let conStreaks = {};
-let conMastered = {};
+let conScores = {};
+let conHistory = [];
 let currentCon = null;
 let conTimer = null;
 let conKeys = [];            // ["S","Z","T","D","TH",...]
@@ -305,10 +301,10 @@ let conMap = {};             // {"S":"0","Z":"0","T":"1",...}
 function saveState(){
   localStorage.setItem('quizState', JSON.stringify({
     score: score,
-    quizPool: quizPool, quizStreaks: quizStreaks, quizMastered: quizMastered,
-    reversePool: reversePool, reverseStreaks: reverseStreaks, reverseMastered: reverseMastered,
-    mixedPool: mixedPool, mixedStreaks: mixedStreaks, mixedMastered: mixedMastered,
-    conPool: conPool, conStreaks: conStreaks, conMastered: conMastered
+    quizScores: quizScores, quizHistory: quizHistory,
+    reverseScores: reverseScores, reverseHistory: reverseHistory,
+    mixedScores: mixedScores, mixedHistory: mixedHistory,
+    conScores: conScores, conHistory: conHistory
   }));
 }
 
@@ -316,19 +312,20 @@ function loadState(){
   try {
     var s = JSON.parse(localStorage.getItem('quizState'));
     if(!s) return;
+    // Detect old format and discard
+    if(s.quizPool || s.quizMastered){
+      localStorage.removeItem('quizState');
+      return;
+    }
     score = s.score || {correct:0, total:0};
-    quizPool = s.quizPool || [];
-    quizStreaks = s.quizStreaks || {};
-    quizMastered = s.quizMastered || {};
-    reversePool = s.reversePool || [];
-    reverseStreaks = s.reverseStreaks || {};
-    reverseMastered = s.reverseMastered || {};
-    mixedPool = s.mixedPool || [];
-    mixedStreaks = s.mixedStreaks || {};
-    mixedMastered = s.mixedMastered || {};
-    conPool = s.conPool || [];
-    conStreaks = s.conStreaks || {};
-    conMastered = s.conMastered || {};
+    quizScores = s.quizScores || {};
+    quizHistory = s.quizHistory || [];
+    reverseScores = s.reverseScores || {};
+    reverseHistory = s.reverseHistory || [];
+    mixedScores = s.mixedScores || {};
+    mixedHistory = s.mixedHistory || [];
+    conScores = s.conScores || {};
+    conHistory = s.conHistory || [];
   } catch(e){}
 }
 
@@ -427,33 +424,22 @@ function showQuizNav(){
 }
 
 /* ================================================================== */
-/*  Pool helpers                                                       */
+/*  Pick next word (score-based with cooldown)                         */
 /* ================================================================== */
-function initPool(mastered){
-  var available = keys.filter(function(k){ return !mastered[k]; });
-  // Fisher-Yates shuffle
-  for(var i = available.length - 1; i > 0; i--){
-    var j = Math.floor(Math.random() * (i + 1));
-    var tmp = available[i]; available[i] = available[j]; available[j] = tmp;
+function pickNext(scores, history, allKeys){
+  // Exclude keys in history (last 10 shown)
+  var eligible = allKeys.filter(function(k){ return history.indexOf(k) === -1; });
+  if(eligible.length === 0) eligible = allKeys.slice(); // fallback if all in cooldown
+  // Find minimum score among eligible
+  var minScore = Infinity;
+  for(var i = 0; i < eligible.length; i++){
+    var s = scores[eligible[i]] || 0;
+    if(s < minScore) minScore = s;
   }
-  return available.slice(0, 10);
-}
-
-function replaceInPool(pool, masteredKey, mastered){
-  var idx = pool.indexOf(masteredKey);
-  if(idx !== -1) pool.splice(idx, 1);
-  var available = keys.filter(function(k){ return !mastered[k] && pool.indexOf(k) === -1; });
-  if(available.length > 0){
-    pool.push(available[Math.floor(Math.random() * available.length)]);
-  }
-}
-
-function pickFromPool(pool, lastKey){
-  if(pool.length === 0) return null;
-  if(pool.length === 1) return pool[0];
-  var pick;
-  do { pick = pool[Math.floor(Math.random() * pool.length)]; } while(pick === lastKey);
-  return pick;
+  // Collect all keys with that minimum score
+  var candidates = eligible.filter(function(k){ return (scores[k] || 0) === minScore; });
+  // Pick one randomly
+  return candidates[Math.floor(Math.random() * candidates.length)];
 }
 
 /* ================================================================== */
@@ -461,15 +447,7 @@ function pickFromPool(pool, lastKey){
 /* ================================================================== */
 function startQuiz(){
   clearTimeout(quizTimer);
-  if(quizPool.length === 0){
-    if(Object.keys(quizMastered).length >= keys.length){
-      quizMastered = {}; quizStreaks = {};
-    }
-    quizPool = initPool(quizMastered);
-    saveState();
-  }
-  var lastKey = currentQuiz ? currentQuiz.digits : null;
-  const d = pickFromPool(quizPool, lastKey);
+  const d = pickNext(quizScores, quizHistory, keys);
   if(!d) return;
   currentQuiz = {digits:d, word:wordlist[d]};
   document.getElementById('quiz-prompt').textContent = d;
@@ -496,36 +474,27 @@ function checkQuiz(){
   const fb = document.getElementById('quiz-feedback');
   if(answer === correct){
     score.correct++;
+    quizScores[key] = (quizScores[key] || 0) + 1;
     fb.className = 'feedback correct';
-    quizStreaks[key] = (quizStreaks[key] || 0) + 1;
-    if(quizStreaks[key] >= 3){
-      quizMastered[key] = true;
-      replaceInPool(quizPool, key, quizMastered);
-      var masteredKeys = Object.keys(quizMastered);
-      if(masteredKeys.length >= 80){
-        var recycled = masteredKeys[Math.floor(Math.random() * masteredKeys.length)];
-        delete quizMastered[recycled];
-        quizStreaks[recycled] = 0;
-        fb.textContent = 'Correct! Mastered \u2014 recycled "'+recycled+'" back.';
-      } else {
-        fb.textContent = 'Correct! Mastered ('+masteredKeys.length+'/80) \u2014 new word incoming.';
-      }
-    } else {
-      fb.textContent = 'Correct! (streak: '+quizStreaks[key]+'/3)';
-    }
+    fb.textContent = 'Correct! (score: '+(quizScores[key])+')';
   } else {
+    quizScores[key] = (quizScores[key] || 0) - 1;
     fb.className = 'feedback incorrect';
-    fb.textContent = 'Incorrect. Answer: "'+correct+'"';
-    quizStreaks[key] = 0;
+    fb.textContent = 'Incorrect. Answer: "'+correct+'" (score: '+(quizScores[key])+')';
   }
+  quizHistory.push(key);
+  if(quizHistory.length > 10) quizHistory.shift();
   updateScore();
   saveState();
   quizTimer = setTimeout(startQuiz, 1800);
 }
 
 function skipQuiz(){
-  if(currentQuiz) quizStreaks[currentQuiz.digits] = 0;
-  saveState();
+  if(currentQuiz){
+    quizHistory.push(currentQuiz.digits);
+    if(quizHistory.length > 10) quizHistory.shift();
+    saveState();
+  }
   startQuiz();
 }
 
@@ -534,15 +503,7 @@ function skipQuiz(){
 /* ================================================================== */
 function startReverse(){
   clearTimeout(reverseTimer);
-  if(reversePool.length === 0){
-    if(Object.keys(reverseMastered).length >= keys.length){
-      reverseMastered = {}; reverseStreaks = {};
-    }
-    reversePool = initPool(reverseMastered);
-    saveState();
-  }
-  var lastKey = currentReverse ? currentReverse.digits : null;
-  const d = pickFromPool(reversePool, lastKey);
+  const d = pickNext(reverseScores, reverseHistory, keys);
   if(!d) return;
   currentReverse = {digits:d, word:wordlist[d]};
   document.getElementById('rev-prompt').textContent = wordlist[d];
@@ -570,36 +531,27 @@ function checkReverse(){
   const fb = document.getElementById('rev-feedback');
   if(answer === correct){
     score.correct++;
+    reverseScores[correct] = (reverseScores[correct] || 0) + 1;
     fb.className = 'feedback correct';
-    reverseStreaks[correct] = (reverseStreaks[correct] || 0) + 1;
-    if(reverseStreaks[correct] >= 3){
-      reverseMastered[correct] = true;
-      replaceInPool(reversePool, correct, reverseMastered);
-      var masteredKeys = Object.keys(reverseMastered);
-      if(masteredKeys.length >= 80){
-        var recycled = masteredKeys[Math.floor(Math.random() * masteredKeys.length)];
-        delete reverseMastered[recycled];
-        reverseStreaks[recycled] = 0;
-        fb.textContent = 'Correct! Mastered \u2014 recycled "'+recycled+'" back.';
-      } else {
-        fb.textContent = 'Correct! Mastered ('+masteredKeys.length+'/80) \u2014 new word incoming.';
-      }
-    } else {
-      fb.textContent = 'Correct! (streak: '+reverseStreaks[correct]+'/3)';
-    }
+    fb.textContent = 'Correct! (score: '+(reverseScores[correct])+')';
   } else {
+    reverseScores[correct] = (reverseScores[correct] || 0) - 1;
     fb.className = 'feedback incorrect';
-    fb.textContent = 'Incorrect. Answer: '+correct;
-    reverseStreaks[correct] = 0;
+    fb.textContent = 'Incorrect. Answer: '+correct+' (score: '+(reverseScores[correct])+')';
   }
+  reverseHistory.push(correct);
+  if(reverseHistory.length > 10) reverseHistory.shift();
   updateScore();
   saveState();
   reverseTimer = setTimeout(startReverse, 1800);
 }
 
 function skipReverse(){
-  if(currentReverse) reverseStreaks[currentReverse.digits] = 0;
-  saveState();
+  if(currentReverse){
+    reverseHistory.push(currentReverse.digits);
+    if(reverseHistory.length > 10) reverseHistory.shift();
+    saveState();
+  }
   startReverse();
 }
 
@@ -608,15 +560,7 @@ function skipReverse(){
 /* ================================================================== */
 function startMixed(){
   clearTimeout(mixedTimer);
-  if(mixedPool.length === 0){
-    if(Object.keys(mixedMastered).length >= keys.length){
-      mixedMastered = {}; mixedStreaks = {};
-    }
-    mixedPool = initPool(mixedMastered);
-    saveState();
-  }
-  var lastKey = currentMixed ? currentMixed.digits : null;
-  const d = pickFromPool(mixedPool, lastKey);
+  const d = pickNext(mixedScores, mixedHistory, keys);
   if(!d) return;
   var mode = Math.random() < 0.5 ? 'forward' : 'reverse';
   currentMixed = {digits:d, word:wordlist[d], mode:mode};
@@ -661,72 +605,36 @@ function checkMixed(){
   const fb = document.getElementById('mix-feedback');
   if(isCorrect){
     score.correct++;
+    mixedScores[key] = (mixedScores[key] || 0) + 1;
     fb.className = 'feedback correct';
-    mixedStreaks[key] = (mixedStreaks[key] || 0) + 1;
-    if(mixedStreaks[key] >= 3){
-      mixedMastered[key] = true;
-      replaceInPool(mixedPool, key, mixedMastered);
-      var masteredKeys = Object.keys(mixedMastered);
-      if(masteredKeys.length >= 80){
-        var recycled = masteredKeys[Math.floor(Math.random() * masteredKeys.length)];
-        delete mixedMastered[recycled];
-        mixedStreaks[recycled] = 0;
-        fb.textContent = 'Correct! Mastered \u2014 recycled "'+recycled+'" back.';
-      } else {
-        fb.textContent = 'Correct! Mastered ('+masteredKeys.length+'/80) \u2014 new word incoming.';
-      }
-    } else {
-      fb.textContent = 'Correct! (streak: '+mixedStreaks[key]+'/3)';
-    }
+    fb.textContent = 'Correct! (score: '+(mixedScores[key])+')';
   } else {
+    mixedScores[key] = (mixedScores[key] || 0) - 1;
     fb.className = 'feedback incorrect';
-    fb.textContent = 'Incorrect. Answer: '+correctDisplay;
-    mixedStreaks[key] = 0;
+    fb.textContent = 'Incorrect. Answer: '+correctDisplay+' (score: '+(mixedScores[key])+')';
   }
+  mixedHistory.push(key);
+  if(mixedHistory.length > 10) mixedHistory.shift();
   updateScore();
   saveState();
   mixedTimer = setTimeout(startMixed, 1800);
 }
 
 function skipMixed(){
-  if(currentMixed) mixedStreaks[currentMixed.digits] = 0;
-  saveState();
+  if(currentMixed){
+    mixedHistory.push(currentMixed.digits);
+    if(mixedHistory.length > 10) mixedHistory.shift();
+    saveState();
+  }
   startMixed();
 }
 
 /* ================================================================== */
 /*  Consonant quiz: sound -> digit                                     */
 /* ================================================================== */
-function initConPool(mastered){
-  var available = conKeys.filter(function(k){ return !mastered[k]; });
-  for(var i = available.length - 1; i > 0; i--){
-    var j = Math.floor(Math.random() * (i + 1));
-    var tmp = available[i]; available[i] = available[j]; available[j] = tmp;
-  }
-  return available.slice(0, 10);
-}
-
-function replaceInConPool(pool, masteredKey, mastered){
-  var idx = pool.indexOf(masteredKey);
-  if(idx !== -1) pool.splice(idx, 1);
-  var available = conKeys.filter(function(k){ return !mastered[k] && pool.indexOf(k) === -1; });
-  if(available.length > 0){
-    pool.push(available[Math.floor(Math.random() * available.length)]);
-  }
-}
-
 function startCon(){
   clearTimeout(conTimer);
-  var masteryThreshold = conKeys.length - 4;
-  if(conPool.length === 0){
-    if(Object.keys(conMastered).length >= conKeys.length){
-      conMastered = {}; conStreaks = {};
-    }
-    conPool = initConPool(conMastered);
-    saveState();
-  }
-  var lastKey = currentCon;
-  var pick = pickFromPool(conPool, lastKey);
+  var pick = pickNext(conScores, conHistory, conKeys);
   if(!pick) return;
   currentCon = pick;
   var conDisplay = {C:'C (hard)',G:'G (hard)'};
@@ -750,41 +658,31 @@ function checkCon(){
 
   var correct = conMap[currentCon];
   var key = currentCon;
-  var masteryThreshold = conKeys.length - 4;
   score.total++;
   var fb = document.getElementById('con-feedback');
   if(answer === correct){
     score.correct++;
+    conScores[key] = (conScores[key] || 0) + 1;
     fb.className = 'feedback correct';
-    conStreaks[key] = (conStreaks[key] || 0) + 1;
-    if(conStreaks[key] >= 3){
-      conMastered[key] = true;
-      replaceInConPool(conPool, key, conMastered);
-      var masteredKeys = Object.keys(conMastered);
-      if(masteredKeys.length >= masteryThreshold){
-        var recycled = masteredKeys[Math.floor(Math.random() * masteredKeys.length)];
-        delete conMastered[recycled];
-        conStreaks[recycled] = 0;
-        fb.textContent = 'Correct! Mastered \u2014 recycled "'+recycled+'" back.';
-      } else {
-        fb.textContent = 'Correct! Mastered ('+masteredKeys.length+'/'+masteryThreshold+') \u2014 new sound incoming.';
-      }
-    } else {
-      fb.textContent = 'Correct! (streak: '+conStreaks[key]+'/3)';
-    }
+    fb.textContent = 'Correct! (score: '+(conScores[key])+')';
   } else {
+    conScores[key] = (conScores[key] || 0) - 1;
     fb.className = 'feedback incorrect';
-    fb.textContent = 'Incorrect. Answer: '+correct;
-    conStreaks[key] = 0;
+    fb.textContent = 'Incorrect. Answer: '+correct+' (score: '+(conScores[key])+')';
   }
+  conHistory.push(key);
+  if(conHistory.length > 10) conHistory.shift();
   updateScore();
   saveState();
   conTimer = setTimeout(startCon, 1800);
 }
 
 function skipCon(){
-  if(currentCon) conStreaks[currentCon] = 0;
-  saveState();
+  if(currentCon){
+    conHistory.push(currentCon);
+    if(conHistory.length > 10) conHistory.shift();
+    saveState();
+  }
   startCon();
 }
 

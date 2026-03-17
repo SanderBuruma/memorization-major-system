@@ -2,7 +2,7 @@
 
 Extracts the JS from index.html, runs it in Node.js with a localStorage
 mock and minimal DOM stubs, and verifies saveState/loadState round-trips
-correctly.
+correctly for the score-based quiz system.
 
 Run:
     python -m pytest test_persistence.py -v
@@ -45,14 +45,14 @@ function setTimeout(){ return 0; }
 
 // -- test runner --
 var fs = require('fs');
-var tests = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
+var _tests = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
 var results = [];
-for(var i = 0; i < tests.length; i++){
+for(var _ti = 0; _ti < _tests.length; _ti++){
   try {
-    eval(tests[i].code);
-    results.push({name: tests[i].name, pass: true});
+    eval(_tests[_ti].code);
+    results.push({name: _tests[_ti].name, pass: true});
   } catch(e) {
-    results.push({name: tests[i].name, pass: false, error: e.message});
+    results.push({name: _tests[_ti].name, pass: false, error: e.message});
   }
 }
 process.stdout.write(JSON.stringify(results));
@@ -113,7 +113,7 @@ class TestSaveLoadRoundTrip(unittest.TestCase):
                 if(!saved) throw new Error('nothing saved');
                 if(saved.score.correct !== 0) throw new Error('score.correct not 0');
                 if(saved.score.total !== 0) throw new Error('score.total not 0');
-                if(saved.quizPool.length !== 0) throw new Error('quizPool not empty');
+                if(saved.quizHistory.length !== 0) throw new Error('quizHistory not empty');
             """,
         }])
         self.assertTrue(results[0]["pass"], results[0].get("error"))
@@ -135,82 +135,64 @@ class TestSaveLoadRoundTrip(unittest.TestCase):
         }])
         self.assertTrue(results[0]["pass"], results[0].get("error"))
 
-    def test_pool_persists(self):
-        """Quiz pool array survives save/load."""
+    def test_scores_persist(self):
+        """Quiz scores object survives save/load."""
         results = _run_js_tests([{
-            "name": "pool_persists",
+            "name": "scores_persist",
             "code": """
-                quizPool = ['03','17','42'];
+                quizScores = {'03': 5, '17': -2, '42': 0};
                 saveState();
-                quizPool = [];
+                quizScores = {};
                 loadState();
-                if(quizPool.length !== 3) throw new Error('length: ' + quizPool.length);
-                if(quizPool[2] !== '42') throw new Error('item: ' + quizPool[2]);
+                if(quizScores['03'] !== 5) throw new Error('03: ' + quizScores['03']);
+                if(quizScores['17'] !== -2) throw new Error('17: ' + quizScores['17']);
+                if(quizScores['42'] !== 0) throw new Error('42: ' + quizScores['42']);
             """,
         }])
         self.assertTrue(results[0]["pass"], results[0].get("error"))
 
-    def test_streaks_persist(self):
-        """Streak objects survive save/load."""
+    def test_history_persists(self):
+        """Quiz history array survives save/load."""
         results = _run_js_tests([{
-            "name": "streaks_persist",
+            "name": "history_persists",
             "code": """
-                reverseStreaks = {'05': 2, '11': 1};
+                quizHistory = ['03','17','42'];
                 saveState();
-                reverseStreaks = {};
+                quizHistory = [];
                 loadState();
-                if(reverseStreaks['05'] !== 2) throw new Error('05: ' + reverseStreaks['05']);
-                if(reverseStreaks['11'] !== 1) throw new Error('11: ' + reverseStreaks['11']);
+                if(quizHistory.length !== 3) throw new Error('length: ' + quizHistory.length);
+                if(quizHistory[2] !== '42') throw new Error('item: ' + quizHistory[2]);
             """,
         }])
         self.assertTrue(results[0]["pass"], results[0].get("error"))
 
-    def test_mastered_persists(self):
-        """Mastered objects survive save/load."""
-        results = _run_js_tests([{
-            "name": "mastered_persists",
-            "code": """
-                mixedMastered = {'22': true, '55': true, '99': true};
-                saveState();
-                mixedMastered = {};
-                loadState();
-                if(Object.keys(mixedMastered).length !== 3)
-                    throw new Error('count: ' + Object.keys(mixedMastered).length);
-                if(!mixedMastered['55']) throw new Error('55 not mastered');
-            """,
-        }])
-        self.assertTrue(results[0]["pass"], results[0].get("error"))
-
-    def test_all_three_quiz_types_independent(self):
+    def test_all_four_quiz_types_independent(self):
         """Each quiz type's state is saved/loaded independently."""
         results = _run_js_tests([{
             "name": "independent_types",
             "code": """
-                quizPool = ['01'];
-                reversePool = ['02'];
-                mixedPool = ['03'];
-                quizStreaks = {'01': 1};
-                reverseStreaks = {'02': 2};
-                mixedStreaks = {'03': 3};
-                quizMastered = {'10': true};
-                reverseMastered = {'20': true};
-                mixedMastered = {'30': true};
+                quizScores = {'01': 3};
+                reverseScores = {'02': -1};
+                mixedScores = {'03': 7};
+                conScores = {'S': 2};
+                quizHistory = ['01'];
+                reverseHistory = ['02'];
+                mixedHistory = ['03'];
+                conHistory = ['S'];
                 saveState();
 
-                quizPool = []; reversePool = []; mixedPool = [];
-                quizStreaks = {}; reverseStreaks = {}; mixedStreaks = {};
-                quizMastered = {}; reverseMastered = {}; mixedMastered = {};
+                quizScores = {}; reverseScores = {}; mixedScores = {}; conScores = {};
+                quizHistory = []; reverseHistory = []; mixedHistory = []; conHistory = [];
                 loadState();
 
-                if(quizPool[0] !== '01') throw new Error('quizPool');
-                if(reversePool[0] !== '02') throw new Error('reversePool');
-                if(mixedPool[0] !== '03') throw new Error('mixedPool');
-                if(quizStreaks['01'] !== 1) throw new Error('quizStreaks');
-                if(reverseStreaks['02'] !== 2) throw new Error('reverseStreaks');
-                if(mixedStreaks['03'] !== 3) throw new Error('mixedStreaks');
-                if(!quizMastered['10']) throw new Error('quizMastered');
-                if(!reverseMastered['20']) throw new Error('reverseMastered');
-                if(!mixedMastered['30']) throw new Error('mixedMastered');
+                if(quizScores['01'] !== 3) throw new Error('quizScores');
+                if(reverseScores['02'] !== -1) throw new Error('reverseScores');
+                if(mixedScores['03'] !== 7) throw new Error('mixedScores');
+                if(conScores['S'] !== 2) throw new Error('conScores');
+                if(quizHistory[0] !== '01') throw new Error('quizHistory');
+                if(reverseHistory[0] !== '02') throw new Error('reverseHistory');
+                if(mixedHistory[0] !== '03') throw new Error('mixedHistory');
+                if(conHistory[0] !== 'S') throw new Error('conHistory');
             """,
         }])
         self.assertTrue(results[0]["pass"], results[0].get("error"))
@@ -252,10 +234,31 @@ class TestLoadStateEdgeCases(unittest.TestCase):
             "name": "partial_data",
             "code": """
                 localStorage.setItem('quizState', JSON.stringify({score: {correct:1, total:2}}));
-                quizPool = ['old'];
+                quizScores = {old: 99};
                 loadState();
                 if(score.correct !== 1) throw new Error('score not loaded');
-                if(quizPool.length !== 0) throw new Error('quizPool not defaulted: ' + quizPool);
+                if(Object.keys(quizScores).length !== 0) throw new Error('quizScores not defaulted');
+            """,
+        }])
+        self.assertTrue(results[0]["pass"], results[0].get("error"))
+
+    def test_old_format_discarded(self):
+        """loadState() detects old pool/mastered format and discards it."""
+        results = _run_js_tests([{
+            "name": "old_format_discarded",
+            "code": """
+                localStorage.setItem('quizState', JSON.stringify({
+                    score: {correct: 50, total: 100},
+                    quizPool: ['01','02'],
+                    quizMastered: {'03': true}
+                }));
+                score = {correct: 0, total: 0};
+                loadState();
+                // Old format should be discarded, score stays at default
+                if(score.correct !== 0) throw new Error('old data loaded: ' + score.correct);
+                // localStorage should be cleared
+                if(localStorage.getItem('quizState') !== null)
+                    throw new Error('old data not removed from localStorage');
             """,
         }])
         self.assertTrue(results[0]["pass"], results[0].get("error"))
@@ -302,17 +305,118 @@ class TestSaveCallSites(unittest.TestCase):
     def test_skipMixed_calls_saveState(self):
         self.assertIn("saveState()", self._function_body("skipMixed"))
 
-    def test_startQuiz_calls_saveState(self):
-        self.assertIn("saveState()", self._function_body("startQuiz"))
+    def test_checkCon_calls_saveState(self):
+        self.assertIn("saveState()", self._function_body("checkCon"))
 
-    def test_startReverse_calls_saveState(self):
-        self.assertIn("saveState()", self._function_body("startReverse"))
-
-    def test_startMixed_calls_saveState(self):
-        self.assertIn("saveState()", self._function_body("startMixed"))
+    def test_skipCon_calls_saveState(self):
+        self.assertIn("saveState()", self._function_body("skipCon"))
 
     def test_init_calls_loadState(self):
         self.assertIn("loadState()", self._function_body("init"))
+
+    def test_check_functions_push_to_history(self):
+        """All check* functions must push to their respective history array."""
+        for func, hist in [
+            ("checkQuiz", "quizHistory"),
+            ("checkReverse", "reverseHistory"),
+            ("checkMixed", "mixedHistory"),
+            ("checkCon", "conHistory"),
+        ]:
+            with self.subTest(func=func):
+                body = self._function_body(func)
+                self.assertIn(f"{hist}.push(", body,
+                              f"{func} must push to {hist}")
+
+    def test_skip_functions_push_to_history(self):
+        """All skip* functions must push to their respective history array."""
+        for func, hist in [
+            ("skipQuiz", "quizHistory"),
+            ("skipReverse", "reverseHistory"),
+            ("skipMixed", "mixedHistory"),
+            ("skipCon", "conHistory"),
+        ]:
+            with self.subTest(func=func):
+                body = self._function_body(func)
+                self.assertIn(f"{hist}.push(", body,
+                              f"{func} must push to {hist}")
+
+    def test_check_functions_modify_scores(self):
+        """All check* functions must modify their respective scores object."""
+        for func, scores in [
+            ("checkQuiz", "quizScores"),
+            ("checkReverse", "reverseScores"),
+            ("checkMixed", "mixedScores"),
+            ("checkCon", "conScores"),
+        ]:
+            with self.subTest(func=func):
+                body = self._function_body(func)
+                self.assertIn(f"{scores}[", body,
+                              f"{func} must modify {scores}")
+
+
+class TestJSPickNext(unittest.TestCase):
+    """Test the actual JS pickNext function in Node."""
+
+    def test_excludes_history(self):
+        results = _run_js_tests([{
+            "name": "pickNext_excludes_history",
+            "code": """
+                var allKeys = ['00','01','02','03','04'];
+                var history = ['00','01','02'];
+                var scores = {};
+                for(var i = 0; i < 100; i++){
+                    var pick = pickNext(scores, history, allKeys);
+                    if(history.indexOf(pick) !== -1)
+                        throw new Error('picked ' + pick + ' which is in history');
+                }
+            """,
+        }])
+        self.assertTrue(results[0]["pass"], results[0].get("error"))
+
+    def test_picks_lowest_score(self):
+        results = _run_js_tests([{
+            "name": "pickNext_lowest_score",
+            "code": """
+                var allKeys = ['00','01','02'];
+                var scores = {'00': 5, '01': 5, '02': -1};
+                for(var i = 0; i < 100; i++){
+                    var pick = pickNext(scores, [], allKeys);
+                    if(pick !== '02')
+                        throw new Error('picked ' + pick + ' instead of 02 (lowest score)');
+                }
+            """,
+        }])
+        self.assertTrue(results[0]["pass"], results[0].get("error"))
+
+    def test_random_among_ties(self):
+        results = _run_js_tests([{
+            "name": "pickNext_random_ties",
+            "code": """
+                var allKeys = ['00','01','02'];
+                var scores = {};
+                var seen = {};
+                for(var i = 0; i < 300; i++){
+                    var pick = pickNext(scores, [], allKeys);
+                    seen[pick] = true;
+                }
+                if(!seen['00'] || !seen['01'] || !seen['02'])
+                    throw new Error('not all keys seen: ' + JSON.stringify(seen));
+            """,
+        }])
+        self.assertTrue(results[0]["pass"], results[0].get("error"))
+
+    def test_fallback_when_all_in_history(self):
+        results = _run_js_tests([{
+            "name": "pickNext_fallback",
+            "code": """
+                var allKeys = ['00','01'];
+                var history = ['00','01'];
+                var pick = pickNext({}, history, allKeys);
+                if(allKeys.indexOf(pick) === -1)
+                    throw new Error('picked invalid key: ' + pick);
+            """,
+        }])
+        self.assertTrue(results[0]["pass"], results[0].get("error"))
 
 
 if __name__ == "__main__":
