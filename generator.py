@@ -49,6 +49,7 @@ _CONCRETE_ROOT_NAMES = (
     'causal_agent.n.01',
     'clock_time.n.01',
     'sound.n.04',
+    'written_symbol.n.01',
 )
 _concrete_roots = None
 

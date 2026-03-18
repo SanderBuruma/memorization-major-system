@@ -81,7 +81,7 @@ def _run_js_tests(tests):
     harness = _NODE_HARNESS.replace("%JSCODE%", js_code)
 
     # Write harness and tests to temp files (avoids -e arg-passing issues)
-    with tempfile.NamedTemporaryFile("w", suffix=".js", delete=False, encoding="utf-8") as hf:
+    with tempfile.NamedTemporaryFile("w", suffix=".cjs", delete=False, encoding="utf-8") as hf:
         hf.write(harness)
         harness_path = hf.name
     with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False, encoding="utf-8") as tf:
