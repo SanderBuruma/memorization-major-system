@@ -111,6 +111,28 @@ body{font-family:system-ui,-apple-system,sans-serif;background:var(--bg-page);co
 .mastery-3 { background-color: var(--bg-mastery-3) !important; color: var(--color-mastery-3); }
 .mastery-4 { background-color: var(--bg-mastery-4) !important; color: var(--color-mastery-4); }
 
+/* Profile */
+.profile-area{max-width:700px;margin:0 auto}
+.profile-area .card{background:var(--bg-surface);border:1px solid var(--border-color);border-radius:8px;padding:18px 20px;margin-bottom:14px}
+.profile-area .card h2{font-size:1.05em;color:var(--color-primary);margin-bottom:10px}
+.profile-area .stat-row{display:flex;justify-content:space-between;padding:4px 0;font-size:.95em}
+.profile-area .stat-row .label{color:var(--text-secondary)}
+.profile-area .stat-row .value{font-weight:600}
+.profile-area .bar-row{display:flex;align-items:center;gap:10px;margin:4px 0;font-size:.9em}
+.profile-area .bar-label{width:80px;text-align:right;color:var(--text-secondary);flex-shrink:0}
+.profile-area .bar-track{flex:1;height:22px;background:var(--bg-page);border-radius:4px;overflow:hidden}
+.profile-area .bar-fill{height:100%;border-radius:4px;min-width:2px}
+.profile-area .bar-count{width:30px;text-align:right;font-weight:600;flex-shrink:0}
+.profile-area .m0 .bar-fill{background:var(--color-mastery-0)}
+.profile-area .m1 .bar-fill{background:var(--color-mastery-1)}
+.profile-area .m2 .bar-fill{background:var(--color-primary)}
+.profile-area .m3 .bar-fill{background:var(--color-mastery-3)}
+.profile-area .m4 .bar-fill{background:var(--color-mastery-4)}
+.profile-area .cov-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.profile-area .cov-item{text-align:center;padding:12px;background:var(--bg-page);border-radius:6px}
+.profile-area .cov-pct{font-size:1.6em;font-weight:700;color:var(--color-primary)}
+.profile-area .cov-label{font-size:.85em;color:var(--text-secondary);margin-top:2px}
+
 /* Responsive */
 @media(max-width:700px){
   .grid{grid-template-columns:repeat(5,1fr)}
@@ -222,6 +244,11 @@ body{font-family:system-ui,-apple-system,sans-serif;background:var(--bg-page);co
              autocomplete="off" spellcheck="false" style="width:100%;max-width:400px;font-size:1.2em">
       <div id="translate-output" class="translate-output"></div>
     </div>
+  </div>
+
+  <!-- PROFILE -------------------------------------------------------- -->
+  <div id="section-profile" class="section">
+    <div class="profile-area" id="profile-content"></div>
   </div>
 
   <!-- SCORE ---------------------------------------------------------- -->
@@ -355,7 +382,7 @@ function updateAuthUI(username){
   var el = document.getElementById('auth-status');
   if(!el) return;
   if(username){
-    el.innerHTML = '<span class="arrow-pill arrow-pill-left" style="font-weight:700;color:var(--text-primary);font-size:1em">' + username + '</span> <form method="post" action="/logout/" style="display:inline"><input type="hidden" name="csrfmiddlewaretoken" value="' + getCookie('csrftoken') + '"><button type="submit" class="auth-link">logout</button></form>';
+    el.innerHTML = '<button class="arrow-pill arrow-pill-left" style="font-weight:700;color:var(--text-primary);font-size:1em;font-family:inherit;cursor:pointer" onclick="showSection(\'profile\')">' + username + '</button> <form method="post" action="/logout/" style="display:inline"><input type="hidden" name="csrfmiddlewaretoken" value="' + getCookie('csrftoken') + '"><button type="submit" class="auth-link">logout</button></form>';
   } else {
     el.innerHTML = '<a href="/login/" class="auth-link">login</a>';
   }
@@ -470,7 +497,8 @@ function showSection(name){
     document.querySelector('.topbar-nav [data-section="quiz-nav"]').classList.add('active');
     document.getElementById('subnav').classList.add('visible');
   } else {
-    document.querySelector('.topbar-nav [data-section="'+name+'"]').classList.add('active');
+    var navBtn = document.querySelector('.topbar-nav [data-section="'+name+'"]');
+    if(navBtn) navBtn.classList.add('active');
     document.getElementById('subnav').classList.remove('visible');
   }
   // Update subnav
@@ -481,6 +509,7 @@ function showSection(name){
   if(name==='reverse') startReverse();
   if(name==='mixed')   startMixed();
   if(name==='consonant') startCon();
+  if(name==='profile') renderProfile();
 }
 
 function showQuizNav(){
@@ -829,6 +858,81 @@ function updateMasteryColors(){
     // Remove old mastery classes and add new
     cell.className = cell.className.replace(/mastery-\d/g, '').trim() + ' ' + cls;
   });
+}
+
+/* ================================================================== */
+/*  Profile stats                                                      */
+/* ================================================================== */
+function renderProfile(){
+  var el = document.getElementById('profile-content');
+  var allKeys = keys.length ? keys : [];
+  // Combined scores
+  var combined = allKeys.map(function(k){
+    return (quizScores[k]||0) + (reverseScores[k]||0) + (mixedScores[k]||0);
+  });
+  // Coverage
+  var qCov = allKeys.filter(function(k){return quizScores[k]}).length;
+  var rCov = allKeys.filter(function(k){return reverseScores[k]}).length;
+  var mCov = allKeys.filter(function(k){return mixedScores[k]}).length;
+  var cAtt = conKeys.filter(function(k){return conScores[k]}).length;
+  var cCov = conKeys.length ? Math.round(cAtt/conKeys.length*100) : 0;
+  // Mastery buckets
+  var mast = [0,0,0,0,0];
+  combined.forEach(function(s){
+    if(s<=-3) mast[0]++;
+    else if(s<0) mast[1]++;
+    else if(s<=3) mast[2]++;
+    else if(s<=8) mast[3]++;
+    else mast[4]++;
+  });
+  // Score stats
+  var sorted = combined.slice().sort(function(a,b){return a-b});
+  var sMin = sorted[0]||0, sMax = sorted[sorted.length-1]||0;
+  var sMean = combined.length ? (combined.reduce(function(a,b){return a+b},0)/combined.length).toFixed(1) : 0;
+  var sMed = 0;
+  if(sorted.length){
+    var mid = Math.floor(sorted.length/2);
+    sMed = sorted.length%2 ? sorted[mid] : ((sorted[mid-1]+sorted[mid])/2);
+  }
+  // Consonant median
+  var cScores = conKeys.map(function(k){return conScores[k]||0}).sort(function(a,b){return a-b});
+  var cMed = 0;
+  if(cScores.length){
+    var cm = Math.floor(cScores.length/2);
+    cMed = cScores.length%2 ? cScores[cm] : ((cScores[cm-1]+cScores[cm])/2);
+  }
+  var pct = score.total>0 ? (score.correct/score.total*100).toFixed(1) : 0;
+  var labels = ['Struggling','Weak','Learning','Good','Mastered'];
+  var mastMax = Math.max.apply(null, mast) || 1;
+  var html = '<div class="card"><h2>Overall</h2>'
+    +'<div class="stat-row"><span class="label">Total attempts</span><span class="value">'+score.total+'</span></div>'
+    +'<div class="stat-row"><span class="label">Accuracy</span><span class="value">'+pct+'%</span></div>'
+    +'</div>'
+    +'<div class="card"><h2>Coverage by mode</h2><div class="cov-grid">'
+    +'<div class="cov-item"><div class="cov-pct">'+qCov+'%</div><div class="cov-label"># &rarr; Word</div></div>'
+    +'<div class="cov-item"><div class="cov-pct">'+rCov+'%</div><div class="cov-label">Word &rarr; #</div></div>'
+    +'<div class="cov-item"><div class="cov-pct">'+mCov+'%</div><div class="cov-label">Mixed</div></div>'
+    +'<div class="cov-item"><div class="cov-pct">'+cCov+'%</div><div class="cov-label">Sound &rarr; #</div></div>'
+    +'</div></div>'
+    +'<div class="card"><h2>Mastery distribution</h2>';
+  for(var i=0;i<5;i++){
+    var w = Math.round(mast[i]/mastMax*100);
+    html+='<div class="bar-row m'+i+'"><span class="bar-label">'+labels[i]+'</span>'
+      +'<div class="bar-track"><div class="bar-fill" style="width:'+w+'%"></div></div>'
+      +'<span class="bar-count">'+mast[i]+'</span></div>';
+  }
+  html+='</div>'
+    +'<div class="card"><h2>Combined score</h2>'
+    +'<div class="stat-row"><span class="label">Median</span><span class="value">'+sMed+'</span></div>'
+    +'<div class="stat-row"><span class="label">Mean</span><span class="value">'+sMean+'</span></div>'
+    +'<div class="stat-row"><span class="label">Min</span><span class="value">'+sMin+'</span></div>'
+    +'<div class="stat-row"><span class="label">Max</span><span class="value">'+sMax+'</span></div>'
+    +'</div>'
+    +'<div class="card"><h2>Consonant sounds</h2>'
+    +'<div class="stat-row"><span class="label">Coverage</span><span class="value">'+cCov+'%</span></div>'
+    +'<div class="stat-row"><span class="label">Median score</span><span class="value">'+cMed+'</span></div>'
+    +'</div>';
+  el.innerHTML = html;
 }
 
 /* ================================================================== */
