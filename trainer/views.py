@@ -118,7 +118,7 @@ def login_view(request):
     if request.method == 'GET':
         return render(request, 'login.html')
 
-    username = request.POST.get('username', '').strip()
+    username = request.POST.get('username', '').strip().lower()
     password = request.POST.get('password', '')
     user = authenticate(request, username=username, password=password)
     if user is not None:
@@ -129,7 +129,7 @@ def login_view(request):
 
 @require_POST
 def register_view(request):
-    username = request.POST.get('username', '').strip()
+    username = request.POST.get('username', '').strip().lower()
     password = request.POST.get('password', '')
     password2 = request.POST.get('password2', '')
 
@@ -137,7 +137,7 @@ def register_view(request):
         return render(request, 'login.html', {'reg_error': 'Username and password are required.'})
     if password != password2:
         return render(request, 'login.html', {'reg_error': 'Passwords do not match.'})
-    if User.objects.filter(username=username).exists():
+    if User.objects.filter(username__iexact=username).exists():
         return render(request, 'login.html', {'reg_error': 'Username already taken.'})
 
     user = User.objects.create_user(username=username, password=password)

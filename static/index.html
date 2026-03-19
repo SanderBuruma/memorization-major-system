@@ -5,12 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Major System Trainer</title>
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
-<script>
-(function(){
-  var t = localStorage.getItem('theme');
-  if (t === 'light') document.documentElement.setAttribute('data-theme', 'light');
-})();
-</script>
 <style>
 :root {
   --bg-page: #121220;
@@ -31,26 +25,6 @@
   --color-error: #ef5350;
   --bg-stripe: #1a1a2e;
   --shadow-hover: rgba(0,0,0,.25);
-}
-[data-theme="light"] {
-  --bg-page: #f0f2f5;
-  --text-primary: #1a1a2e;
-  --text-secondary: #666;
-  --text-muted: #444;
-  --color-primary: #3a86ff;
-  --color-primary-hover: #265ecf;
-  --bg-surface: #fff;
-  --border-color: #e0e0e0;
-  --border-input: #d0d0d0;
-  --bg-nav-hover: #edf2ff;
-  --color-skip: #888;
-  --color-skip-hover: #666;
-  --bg-success: #e8f5e9;
-  --color-success: #2e7d32;
-  --bg-error: #ffebee;
-  --color-error: #c62828;
-  --bg-stripe: #f8f9fb;
-  --shadow-hover: rgba(0,0,0,.08);
 }
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:system-ui,-apple-system,sans-serif;background:var(--bg-page);color:var(--text-primary);min-height:100vh}
@@ -121,7 +95,7 @@ nav button.active{background:var(--color-primary);color:#fff}
   display:flex;align-items:center;padding:8px 12px;min-width:auto}
 
 /* Theme toggle */
-.theme-toggle{position:fixed;top:14px;right:14px;width:40px;height:40px;border-radius:50%;
+.theme-toggle{display:none;position:fixed;top:14px;right:14px;width:40px;height:40px;border-radius:50%;
   border:1px solid var(--border-color);background:var(--bg-surface);cursor:pointer;
   display:flex;align-items:center;justify-content:center;z-index:1000;transition:background .15s}
 .theme-toggle:hover{background:var(--bg-nav-hover)}
@@ -141,11 +115,11 @@ nav button.active{background:var(--color-primary);color:#fff}
 .auth-link:hover { text-decoration: underline; }
 
 /* Mastery grid colors */
-.mastery-0 { background-color: #c0392b !important; color: #fff; }
-.mastery-1 { background-color: #e67e22 !important; color: #fff; }
+.mastery-0 { background-color: #3a1518 !important; color: #ef5350; }
+.mastery-1 { background-color: #3a2a15 !important; color: #e0a050; }
 .mastery-2 { }
-.mastery-3 { background-color: #7fb442 !important; color: #fff; }
-.mastery-4 { background-color: #27ae60 !important; color: #fff; }
+.mastery-3 { background-color: #1a3018 !important; color: #8cbf60; }
+.mastery-4 { background-color: #0f2a18 !important; color: #4cda6a; }
 
 /* Responsive */
 @media(max-width:700px){
@@ -335,8 +309,7 @@ function saveState(){
     quizScores: quizScores, quizHistory: quizHistory,
     reverseScores: reverseScores, reverseHistory: reverseHistory,
     mixedScores: mixedScores, mixedHistory: mixedHistory,
-    conScores: conScores, conHistory: conHistory,
-    theme: document.documentElement.getAttribute('data-theme') || 'dark'
+    conScores: conScores, conHistory: conHistory
   };
   localStorage.setItem('quizState', JSON.stringify(state));
   // Background sync to server (fire-and-forget)
@@ -854,10 +827,10 @@ function updateMasteryColors(){
     var total = (quizScores[key] || 0) + (reverseScores[key] || 0) + (mixedScores[key] || 0);
     // Determine mastery level
     var cls;
-    if(total <= -2) cls = 'mastery-0';
-    else if(total <= 0) cls = 'mastery-1';
-    else if(total <= 2) cls = 'mastery-2';
-    else if(total <= 5) cls = 'mastery-3';
+    if(total <= -3) cls = 'mastery-0';
+    else if(total < 0) cls = 'mastery-1';
+    else if(total <= 3) cls = 'mastery-2';
+    else if(total <= 8) cls = 'mastery-3';
     else cls = 'mastery-4';
     // Remove old mastery classes and add new
     cell.className = cell.className.replace(/mastery-\d/g, '').trim() + ' ' + cls;
