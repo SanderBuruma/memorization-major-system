@@ -16,7 +16,9 @@ jobs:
         with:
           python-version: '3.13'
       - run: pip install -r requirements.txt
-      - run: python -m unittest discover
+      - run: python manage.py test --no-input
+        env:
+          DJANGO_SETTINGS_MODULE: config.settings
 
   deploy:
     needs: test
