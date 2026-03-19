@@ -2,7 +2,7 @@
 
 Every source file with line counts, key sections, and function locations.
 
-## validator.py (83 lines)
+## validator.py (82 lines)
 
 Pure encoding logic. No side effects, no file I/O.
 
@@ -16,14 +16,14 @@ Pure encoding logic. No side effects, no file I/O.
 | 72–77 | `word_to_phonemes(word)` | Return first CMU pronunciation for a word, or None |
 | 80–82 | `number_to_digits(number)` | Zero-pad integer to 2-digit string |
 
-## generator.py (257 lines)
+## generator.py (284 lines)
 
 Word selection, validation, and persistence. Main workhorse module.
 
 | Line | Symbol | Description |
 |------|--------|-------------|
 | 20 | `WORDLIST_PATH` | Path to `wordlist.json` (sibling to this file) |
-| 24 | `MANUAL_OVERRIDES` | Dict for human-curated overrides (empty by default) |
+| 24 | `MANUAL_OVERRIDES` | Dict for human-curated overrides |
 | 27–31 | `BLOCKED_WORDS` | Set of excluded words (slurs, abbreviations) |
 | 34–43 | `ensure_nltk_data()` | Download WordNet + OMW data if missing |
 | 46–59 | `is_concrete_noun_synset(synset)` | BFS: does synset trace to `physical_entity.n.01`? |
@@ -37,24 +37,91 @@ Word selection, validation, and persistence. Main workhorse module.
 | 194–203 | `_try_replace(wordlist, digits, candidates, bad_word)` | Replace one bad entry from candidate pool |
 | 206–235 | `load_or_generate_wordlist()` | Load from disk or generate; quick-check + repair |
 | 238–242 | `save_wordlist(wordlist)` | Write wordlist.json (sorted, indented) |
-| 245–256 | `__main__` block | CLI entry point: generate, validate, save, report |
+| 245+ | `__main__` block | CLI entry point: generate, validate, save, report |
 
-## server.py (89 lines)
+## config/settings.py (65 lines)
 
-HTTP server with JSON API endpoints.
+Django settings. SQLite database, session auth, static file serving.
 
 | Line | Symbol | Description |
 |------|--------|-------------|
-| 19–20 | `HOST`, `PORT` | `localhost`, `8080` |
-| 23 | `wordlist` | Module-level global, populated at startup |
-| 26–55 | `MajorSystemHandler` | Custom request handler (extends `SimpleHTTPRequestHandler`) |
-| 28–33 | `__init__()` | Sets static file directory to `static/` |
-| 35–44 | `do_GET()` | Routes: `/api/wordlist`, `/api/mapping`, `/`, fallback |
-| 46–52 | `_json_response(data)` | Send JSON with Content-Type and Content-Length |
-| 54–55 | `log_message()` | Redirect HTTP logs to `logger.debug` |
-| 58–84 | `main()` | Startup: load wordlist → create server → serve forever |
+| 4 | `BASE_DIR` | Project root |
+| 6 | `SECRET_KEY` | From env `DJANGO_SECRET_KEY` (fallback for dev) |
+| 8 | `DEBUG` | From env `DJANGO_DEBUG` (default off) |
+| 10 | `ALLOWED_HOSTS` | From env `DJANGO_ALLOWED_HOSTS` |
+| 12–20 | `INSTALLED_APPS` | Includes `trainer` app |
+| 50–55 | `DATABASES` | SQLite at `db.sqlite3` |
+| 57–59 | Static file config | `STATIC_URL`, `STATICFILES_DIRS`, `STATIC_ROOT` |
 
-## test_associations.py (116 lines)
+## config/urls.py (10 lines)
+
+Root URL config. Includes `trainer.urls` at `/`. Serves static files in DEBUG mode.
+
+## config/wsgi.py (7 lines)
+
+WSGI entry point for gunicorn.
+
+## trainer/models.py (22 lines)
+
+| Line | Symbol | Description |
+|------|--------|-------------|
+| 5–22 | `QuizState` | Per-user/IP quiz state model |
+| 6 | `user` | OneToOneField to User (nullable) |
+| 7 | `ip_address` | GenericIPAddressField (anonymous tracking) |
+| 9–10 | `score_correct`, `score_total` | Overall score counters |
+| 12–19 | Quiz JSONFields | `quiz_scores/history`, `reverse_scores/history`, `mixed_scores/history`, `con_scores/history` |
+| 21 | `theme` | dark/light preference |
+| 22 | `updated_at` | Auto-updated timestamp |
+
+## trainer/views.py (160 lines)
+
+Django views for API endpoints and auth.
+
+| Line | Symbol | Description |
+|------|--------|-------------|
+| 16–17 | `_wordlist`, `_mapping` | Module-level globals, populated at import |
+| 20–24 | `get_client_ip(request)` | Extract client IP (X-Forwarded-For aware) |
+| 27–33 | `get_quiz_state(request)` | Get or create QuizState for user or IP |
+| 36–39 | `index_view(request)` | Serve `static/index.html` with CSRF cookie |
+| 42–44 | `wordlist_view(request)` | Return wordlist JSON |
+| 47–49 | `mapping_view(request)` | Return digit-to-sounds JSON |
+| 58–114 | `state_view(request)` | GET: return quiz state; POST: update quiz state |
+| 117–127 | `login_view(request)` | Render login form or authenticate |
+| 130–154 | `register_view(request)` | Create user, merge IP-based state |
+| 157–160 | `logout_view(request)` | End session, redirect |
+
+## trainer/urls.py (12 lines)
+
+| Route | View | Description |
+|-------|------|-------------|
+| `/` | `index_view` | Frontend SPA |
+| `/api/wordlist` | `wordlist_view` | Wordlist JSON |
+| `/api/mapping` | `mapping_view` | Digit-to-sounds JSON |
+| `/api/state` | `state_view` | Quiz state GET/POST |
+| `/login/` | `login_view` | Login page |
+| `/register/` | `register_view` | Registration |
+| `/logout/` | `logout_view` | Logout |
+
+## manage.py (20 lines)
+
+Django management command entry point. Standard boilerplate.
+
+## templates/login.html (148 lines)
+
+Login and registration form page. Styled to match the SPA theme. Shows login form by default, registration form below.
+
+## lookup.py (138 lines)
+
+CLI tool for looking up Major System associations.
+
+| Line | Symbol | Description |
+|------|--------|-------------|
+| 24–28 | `load_wordlist()` | Load wordlist.json |
+| 31–79 | `lookup_number(digits)` | Show all candidate words for a 2-digit number |
+| 82–119 | `lookup_word(word)` | Show number, phonemes, noun/concrete status for a word |
+| 122–138 | `main()` | CLI entry point |
+
+## test_associations.py (115 lines)
 
 Unittest suite, runnable independently of the server.
 
@@ -67,83 +134,94 @@ Unittest suite, runnable independently of the server.
 | 72–89 | `test_all_encodings_match()` | Every word's CMU encoding matches its number |
 | 95–111 | `test_all_words_are_concrete()` | Every word traces to `physical_entity.n.01` |
 
-## test_pool_quiz.py (232 lines)
+## test_pool_quiz.py (235 lines)
 
-Tests for the pool-based quiz system. Replicates the JS pool logic in Python and statistically verifies correctness.
+Tests for the score-based quiz system. Replicates the JS quiz logic in Python and statistically verifies correctness.
 
-| Line | Class | Tests | Description |
-|------|-------|-------|-------------|
-| 14–20 | Helper functions | — | `init_pool()`, `replace_in_pool()`, `pick_from_pool()` (Python replicas of JS) |
-| 40–57 | `TestInitPool` | 5 | Pool size, mastered exclusion, validity, no duplicates, randomness |
-| 60–87 | `TestReplaceInPool` | 4 | Replacement, mastered exclusion, pool shrinking, no duplicates |
-| 90–104 | `TestPickFromPool` | 4 | Empty pool, single element, avoids last key, all members reachable |
-| 107–125 | `TestStreakGraduation` | 3 | 3-correct graduation, incorrect reset, skip reset |
-| 128–170 | `TestRecycleAt80` | 4 | Drops to 79, streak reset, never exceeds 80, random distribution |
-| 173–184 | `TestPoolPersistence` | 2 | Pool survives across rounds, reinits when empty |
-| 187–230 | `TestFullSimulation` | 3 | Only pool words quizzed, no consecutive repeats, all 100 eventually seen |
+## test_api.py (249 lines)
 
-## static/index.html (481 lines)
+Django integration tests for API endpoints and auth flows.
 
-Self-contained SPA: inline CSS + inline JavaScript (no build step).
+| Symbol | Description |
+|--------|-------------|
+| `TestWordlistAPI` | Wordlist endpoint returns 100 two-digit keyed entries |
+| `TestMappingAPI` | Mapping endpoint returns 10 single-digit keyed entries |
+| `TestStateAPI` | State GET/POST for authenticated and anonymous users |
+| `TestAuthViews` | Login, register, logout flows; IP state merging |
 
-### CSS (lines 14–119)
+## test_persistence.py (423 lines)
 
-| Line | Section |
-|------|---------|
-| 15–54 | CSS custom properties (dark/light themes, 18 vars each) |
-| 55–56 | Global resets, body |
-| 57–65 | Container, header, nav buttons |
-| 69–75 | Grid layout (10-column, responsive to 5-column at 700px) |
-| 77–93 | Quiz UI: prompt, input, buttons, feedback colors |
-| 95–98 | Score bar |
-| 100–105 | Reference table |
-| 107–112 | Theme toggle button |
-| 114–118 | Media query for mobile |
+Tests for JS localStorage persistence logic. Extracts JS from `index.html`, runs it in Node.js with a localStorage mock, and verifies saveState/loadState round-trips.
 
-### HTML (lines 121–183)
+## static/index.html (873 lines)
 
-| Line | Section |
-|------|---------|
-| 122 | Theme toggle button |
-| 124–127 | Header with title |
-| 129–134 | Nav bar (4 tab buttons) |
-| 137–139 | Grid section |
-| 142–153 | Quiz section (number → word), skip calls `skipQuiz()` |
-| 155–167 | Reverse quiz section (word → number), skip calls `skipReverse()` |
-| 169–177 | Reference section |
-| 179–182 | Score bar |
+Self-contained SPA: inline CSS + inline JavaScript (no build step). Offline-first with localStorage caching and background server sync.
 
-### JavaScript (lines 185–480)
+### CSS
 
-| Line | Function | Description |
-|------|----------|-------------|
-| 189–206 | Theme toggle | `toggleTheme()`, `updateToggleIcon()`, SVG icons |
-| 211–227 | State variables | `wordlist`, `mapping`, `keys`, `score`, quiz state + pool state |
-| 232–241 | `init()` | Parallel fetch of `/api/wordlist` + `/api/mapping`, render |
-| 246–257 | `renderGrid()` | Build 100 grid cells |
-| 262–270 | `renderRef()` | Build reference table rows |
-| 275–282 | `showSection(name)` | Tab switching, auto-start quizzes |
-| 288–296 | `initPool(mastered)` | Pick 10 random unmastered keys (Fisher-Yates shuffle) |
-| 298–305 | `replaceInPool(pool, masteredKey, mastered)` | Remove graduated key, add random replacement |
-| 307–313 | `pickFromPool(pool, lastKey)` | Random pick from pool, avoids consecutive repeats |
-| 318–338 | `startQuiz()` | Lazy-init pool, pick from pool, set up quiz UI |
-| 340–378 | `checkQuiz()` | Validate answer, track streaks, graduate at 3, recycle at 80 |
-| 380–383 | `skipQuiz()` | Reset streak, advance to next |
-| 388–408 | `startReverse()` | Lazy-init pool, pick from pool, set up reverse quiz UI |
-| 410–448 | `checkReverse()` | Validate answer, track streaks, graduate at 3, recycle at 80 |
-| 450–453 | `skipReverse()` | Reset streak, advance to next |
-| 458–462 | `updateScore()` | Calculate percentage, update display |
-| 467–472 | Event listeners | Enter key → submit for both quiz inputs |
-| 478 | `init()` call | Boots the application |
+| Section | Description |
+|---------|-------------|
+| Custom properties | Dark/light themes |
+| Grid layout | 10-column, responsive to 5-column at 700px |
+| Grid cell mastery colors | `.mastery-0` (red) through `.mastery-4` (green) |
+| Quiz UI | Prompt, input, buttons, feedback colors |
+| Score bar | Score display |
+| Subnav | Quiz mode sub-navigation |
+| Reference table | Digit-to-sound reference |
+| Auth status | Login/logout link |
+| Theme toggle | Sun/moon icon button |
+
+### HTML
+
+| Section | Description |
+|---------|-------------|
+| Theme toggle | Dark/light switch |
+| Header | Title |
+| Nav bar | 4 tabs: Grid, Quiz, Reference, Translate |
+| Subnav | 4 quiz modes: # → Word, Word → #, Mixed, Sound → # |
+| Grid section | 10×10 mastery grid |
+| Quiz sections | Forward, reverse, mixed, consonant quiz UIs |
+| Reference section | Digit-to-sound table |
+| Score bar | Running correct/total display |
+| Auth status | Username or login link |
+
+### JavaScript
+
+| Function | Description |
+|----------|-------------|
+| Theme toggle | `toggleTheme()`, `updateToggleIcon()` |
+| State variables | wordlist, mapping, keys, score, quiz state per mode |
+| `saveState()` | Write to localStorage + fire-and-forget POST to `/api/state` |
+| `loadState()` | Read from localStorage |
+| `applyState(s)` | Apply server state, re-render |
+| `updateAuthUI(username)` | Show username/logout or login link |
+| `init()` | Load cached data, render, background fetch + sync |
+| `renderGrid()` | Build 100 grid cells |
+| `updateMasteryColors()` | Color-code grid cells by combined scores |
+| `renderRef()` | Build reference table rows |
+| `showSection(name)` | Tab switching, auto-start quizzes |
+| `pickNext(scores, history, allKeys)` | Score-based selection with cooldown |
+| `startQuiz()` / `checkQuiz()` / `skipQuiz()` | Forward quiz |
+| `startReverse()` / `checkReverse()` / `skipReverse()` | Reverse quiz |
+| `startMixed()` / `checkMixed()` / `skipMixed()` | Mixed quiz |
+| `startCon()` / `checkCon()` / `skipCon()` | Consonant quiz |
+| `updateScore()` | Calculate percentage, update display |
+| Event listeners | Enter key → submit for all quiz inputs |
 
 ## wordlist.json (102 lines)
 
 Generated artifact. JSON object mapping `"00"`–`"99"` to noun strings. Regenerated by `python generator.py`.
 
-## requirements.txt (3 lines)
+## requirements.txt (5 lines)
 
 ```
 cmudict>=1.0.0
 nltk>=3.8
 setuptools
+django>=5.1
+gunicorn
 ```
+
+## deploy.sh
+
+VPS deployment script. Pulls latest code, installs deps, runs `migrate` and `collectstatic`, restarts the systemd service.

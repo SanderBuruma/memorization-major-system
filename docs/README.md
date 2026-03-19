@@ -1,6 +1,6 @@
 # Major System Trainer — Documentation
 
-A Python application for memorizing the [Major System](https://en.wikipedia.org/wiki/Mnemonic_major_system) (00–99) using phoneme-validated concrete noun associations, with a browser-based quiz interface.
+A Python/Django application for memorizing the [Major System](https://en.wikipedia.org/wiki/Mnemonic_major_system) (00–99) using phoneme-validated concrete noun associations, with a browser-based quiz interface and server-side state persistence.
 
 ## Documentation Index
 
@@ -14,8 +14,9 @@ A Python application for memorizing the [Major System](https://en.wikipedia.org/
 
 ```bash
 pip install -r requirements.txt
-python server.py          # http://localhost:8080
-python -m unittest test_associations   # run validation suite
+python manage.py migrate
+python manage.py runserver 8080   # http://localhost:8080
+python manage.py test             # run all test suites
 ```
 
 ## How It Works
@@ -24,4 +25,5 @@ python -m unittest test_associations   # run validation suite
 2. Each noun is encoded via the CMU Pronouncing Dictionary into Major System digits
 3. For each number 00–99, the shortest matching noun is selected
 4. A test suite validates every association (noun status, encoding, concreteness)
-5. A lightweight HTTP server serves the wordlist to a single-page frontend with grid view and two pool-based quiz modes (spaced repetition with 10-word active pools)
+5. A Django app serves the wordlist to a single-page frontend with grid view, four quiz modes (score-based selection with cooldown), and server-side state persistence
+6. Frontend is offline-first: loads from localStorage immediately, syncs to server in background

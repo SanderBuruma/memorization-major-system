@@ -1,6 +1,6 @@
 # Architecture
 
-The system follows a **generate-then-serve** pattern: Python modules produce a validated wordlist offline, a lightweight HTTP server serves it, and a vanilla JS frontend provides the training UI.
+The system follows a **generate-then-serve** pattern: Python modules produce a validated wordlist offline, a Django app serves it via gunicorn behind nginx, and a vanilla JS frontend provides the training UI with offline-first state management.
 
 ## Contents
 
@@ -10,7 +10,7 @@ The system follows a **generate-then-serve** pattern: Python modules produce a v
 - [Phoneme-to-Digit Mapping](#phoneme-to-digit-mapping)
 - [Word Selection Pipeline](#word-selection-pipeline)
 - [Validation Pipeline](#validation-pipeline)
-- [HTTP Server](#http-server)
+- [Django App](#django-app)
 - [Frontend](#frontend)
 - [Key Takeaways](#key-takeaways)
 
@@ -31,18 +31,23 @@ The system follows a **generate-then-serve** pattern: Python modules produce a v
                │ wordlist.json
                ▼
 ┌──────────────────────────────────────────────────────┐
-│  server.py                                           │
+│  Django (config/ + trainer/)                         │
 │  ├─ GET /api/wordlist → JSON                         │
 │  ├─ GET /api/mapping  → JSON                         │
-│  └─ GET /             → index.html                   │
+│  ├─ GET/POST /api/state → quiz state per user/IP     │
+│  ├─ GET /             → index.html                   │
+│  └─ /login/ /register/ /logout/ → user auth          │
 └──────────────┬───────────────────────────────────────┘
-               │ HTTP (localhost:8080)
+               │ gunicorn + nginx (port 8734)
                ▼
 ┌──────────────────────────────────────────────────────┐
-│  static/index.html (SPA)                             │
-│  ├─ Grid view (10×10)                                │
+│  static/index.html (SPA, offline-first)              │
+│  ├─ Grid view (10×10, color-coded mastery)           │
 │  ├─ Quiz: number → word                              │
 │  ├─ Quiz: word → number                              │
+│  ├─ Quiz: mixed (random direction)                   │
+│  ├─ Quiz: sound → digit (consonant quiz)             │
+│  ├─ Translate section                                │
 │  └─ Reference table                                  │
 └──────────────────────────────────────────────────────┘
 ```
@@ -53,7 +58,7 @@ Three distinct layers with minimal coupling:
 |-------|---------|----------------|
 | **Encoding** | `validator.py` | CMU phoneme lookup, digit conversion |
 | **Generation** | `generator.py` | WordNet nouns, candidate selection, validation, persistence |
-| **Serving** | `server.py`, `static/index.html` | HTTP endpoints + browser UI |
+| **Serving** | `config/`, `trainer/`, `static/index.html` | Django app, API endpoints, auth, browser UI |
 
 ## Module Dependency Graph
 
@@ -61,15 +66,23 @@ Three distinct layers with minimal coupling:
 cmudict (external)
   └─► validator.py
         └─► generator.py ◄── nltk/wordnet (external)
-              └─► server.py ◄── http.server (stdlib)
+              └─► trainer/views.py ◄── django
+
+config/settings.py ◄── django config
+config/urls.py     ◄── includes trainer/urls.py
+trainer/models.py  ◄── QuizState (SQLite)
+trainer/views.py   ◄── generator, validator, models
 
 test_associations.py ◄── validator, generator, nltk, unittest
+test_pool_quiz.py    ◄── standalone JS logic replica
+test_api.py          ◄── django.test (API + auth integration)
+test_persistence.py  ◄── node.js harness (JS persistence logic)
 ```
 
 - `validator.py` has no project-internal dependencies — pure encoding logic.
 - `generator.py` depends on `validator` for encoding checks.
-- `server.py` depends on both for startup loading.
-- `test_associations.py` imports from all modules but is fully independent of the server.
+- `trainer/views.py` imports from both for startup loading.
+- Test files are independent of the running server.
 
 ## Data Flow
 
@@ -90,16 +103,18 @@ WordNet corpus
 ### Serving (runtime)
 
 ```
-Browser GET /  →  index.html (static)
-Browser GET /api/wordlist  →  {"00":"sis","01":"set",...}  (from memory)
-Browser GET /api/mapping   →  {"0":"S, Z","1":"T, D, TH",...}  (constant)
+Browser GET /             →  index.html (served by Django view)
+Browser GET /api/wordlist →  {"00":"sis","01":"set",...}  (from memory)
+Browser GET /api/mapping  →  {"0":"S, Z","1":"T, D, TH",...}  (constant)
+Browser GET /api/state    →  quiz state (per user or IP)
+Browser POST /api/state   →  save quiz state to server
 ```
 
-The wordlist is loaded into a module-level global at server startup. No database, no runtime generation.
+The wordlist is loaded into a module-level global at app startup. Quiz state is stored in SQLite via the `QuizState` model.
 
 ### Startup Validation (fail-fast)
 
-On every server start, `load_or_generate_wordlist()` (`generator.py:206`) runs:
+On every app start, `load_or_generate_wordlist()` (`generator.py`) runs:
 
 1. If `wordlist.json` exists: load it and do a **quick encoding check** (CMU dict only, fast)
 2. If any entry is missing or mis-encoded: run **full validation** (WordNet noun + concreteness check), auto-replace broken entries, save repaired file
@@ -164,13 +179,13 @@ Deterministic: shortest word wins, alphabetical tiebreaker. No randomness in fin
 
 ### Step 4: Manual overrides (`generator.py:24`)
 
-`MANUAL_OVERRIDES` dict (currently empty) is checked before automatic selection. Allows human curation of specific entries while still requiring them to pass validation.
+`MANUAL_OVERRIDES` dict is checked before automatic selection. Allows human curation of specific entries while still requiring them to pass validation.
 
 ## Validation Pipeline
 
 Three levels of validation, in increasing depth:
 
-### Quick check (server startup, `generator.py:213-222`)
+### Quick check (app startup)
 - For each 00–99: is the word non-null and does `word_to_digits(word)` match?
 - Only uses CMU dict — fast (~1 second for all 100)
 
@@ -191,74 +206,124 @@ Each failure triggers `_try_replace()` which picks the next-best candidate from 
 - `test_all_encodings_match` — CMU encoding check
 - `test_all_words_are_concrete` — hypernym chain to `physical_entity.n.01`
 
-**test_pool_quiz.py** — 25 tests verifying pool-based quiz logic (Python replica of JS):
-- Pool init, replacement, pick, streak graduation, recycle-at-80, full simulation
+**test_pool_quiz.py** — tests verifying score-based quiz logic (Python replica of JS):
+- Score-based selection, cooldown history, pick distribution
 
-## HTTP Server
+**test_api.py** — Django integration tests for API endpoints and auth:
+- Wordlist/mapping endpoints, state GET/POST, login/register/logout
 
-`server.py` uses `http.server.SimpleHTTPRequestHandler` (stdlib) with custom routing:
+**test_persistence.py** — Node.js harness testing JS persistence logic:
+- saveState/loadState round-trips, localStorage format
 
-| Route | Handler | Response |
-|-------|---------|----------|
-| `/api/wordlist` | `_json_response()` | Wordlist JSON (100 entries) |
-| `/api/mapping` | `_json_response()` | Digit-to-sounds reference |
-| `/` | Rewrite → `/index.html` | HTML frontend |
-| `/*` | `SimpleHTTPRequestHandler` | Static files from `static/` |
+## Django App
 
-No frameworks. No CORS (same-origin). No caching headers. Synchronous request handling.
+The server uses Django with gunicorn behind nginx (port 8734 in production).
+
+### Routes (`trainer/urls.py`)
+
+| Route | View | Response |
+|-------|------|----------|
+| `/` | `index_view` | Serves `static/index.html` with CSRF cookie |
+| `/api/wordlist` | `wordlist_view` | Wordlist JSON (100 entries) |
+| `/api/mapping` | `mapping_view` | Digit-to-sounds reference |
+| `/api/state` | `state_view` | GET: load quiz state; POST: save quiz state |
+| `/login/` | `login_view` | Login form (GET) or authenticate (POST) |
+| `/register/` | `register_view` | Create account + merge IP state |
+| `/logout/` | `logout_view` | End session |
+
+### QuizState Model (`trainer/models.py`)
+
+Stores quiz state per user (authenticated) or per IP (anonymous):
+
+- `user` — OneToOneField to User (nullable for anonymous)
+- `ip_address` — GenericIPAddressField (for anonymous tracking)
+- `score_correct`, `score_total` — overall score counters
+- `quiz_scores`, `quiz_history` — forward quiz state (JSONField)
+- `reverse_scores`, `reverse_history` — reverse quiz state
+- `mixed_scores`, `mixed_history` — mixed quiz state
+- `con_scores`, `con_history` — consonant quiz state
+- `theme` — dark/light preference
+- `updated_at` — auto-updated timestamp
+
+On registration, IP-based state is merged into the new user account.
 
 ## Frontend
 
-`static/index.html` is a self-contained SPA (inline CSS + JS, no build step).
+`static/index.html` is a self-contained SPA (inline CSS + JS, no build step). Offline-first: loads from localStorage immediately, syncs to server in background.
 
 ### State
 
 ```javascript
-let wordlist = {};              // {"00":"sis",...} from /api/wordlist
-let mapping  = {};              // {"0":"S, Z",...} from /api/mapping
-let score    = {correct:0, total:0};  // session score
-let currentQuiz    = null;      // {digits, word} for active quiz
-let currentReverse = null;      // {digits, word} for active reverse quiz
+var wordlist = {};              // {"00":"sis",...} from /api/wordlist
+var mapping  = {};              // {"0":"S, Z",...} from /api/mapping
+var score    = {correct:0, total:0};  // session score
+var currentQuiz    = null;      // {digits, word} for active quiz
+var currentReverse = null;      // {digits, word} for active reverse quiz
+var currentMixed   = null;      // {digits, word, mode} for active mixed quiz
+var currentCon     = null;      // consonant quiz state
 
-// Pool-based quiz state (independent per quiz type)
-let quizPool = [];              // 10 active keys for forward quiz
-let quizStreaks = {};           // key → consecutive correct count
-let quizMastered = {};          // key → true when graduated
-let reversePool = [];           // same for reverse quiz
-let reverseStreaks = {};
-let reverseMastered = {};
+// Score-based quiz state (independent per quiz type)
+var quizScores = {};            // key → score (default 0)
+var quizHistory = [];           // last 10 shown keys (cooldown FIFO)
+var reverseScores = {};
+var reverseHistory = [];
+var mixedScores = {};
+var mixedHistory = [];
+var conScores = {};
+var conHistory = [];
 ```
 
-Score is ephemeral — resets on page refresh. Pool state also resets on refresh (not persisted to localStorage).
+State persists across page refreshes via localStorage. On each state change, `saveState()` writes to localStorage and fire-and-forget POSTs to `/api/state`.
 
-### Pool-Based Quiz System (Spaced Repetition)
+### Score-Based Quiz System
 
-Both quiz modes use a **pool of 10 active words** instead of picking randomly from all 100. This ensures focused repetition for mastery.
+All quiz modes use **score-based selection with cooldown** instead of random picks. This focuses practice on weaker items.
 
-**Pool lifecycle:**
-1. On first quiz start, `initPool()` picks 10 random keys (Fisher-Yates shuffle)
-2. `pickFromPool()` selects a random word from the pool, avoiding the last-shown word
-3. On correct answer: increment streak counter for that word
-4. **Graduation:** 3 consecutive correct answers → word is mastered, removed from pool, replaced by a new unmastered word via `replaceInPool()`
-5. On incorrect or skip: streak resets to 0, word stays in pool
-6. **Recycle at 80:** when 80 words are mastered, 1 random mastered word gets recycled back (unmastered, streak reset) — keeps the quiz cycling indefinitely
-7. Pool persists across tab switches (module-level state)
+**Selection algorithm (`pickNext()`):**
+1. Exclude keys in the history array (last 10 shown — cooldown)
+2. Find the minimum score among eligible keys
+3. Collect all keys with that minimum score
+4. Pick one randomly from that group
 
-**Helper functions:**
-- `initPool(mastered)` — pick 10 random unmastered keys
-- `replaceInPool(pool, masteredKey, mastered)` — swap graduated key for a fresh one
-- `pickFromPool(pool, lastKey)` — random pick avoiding consecutive repeats
+**Scoring:**
+- Correct answer: score increments (+1)
+- Incorrect/skip: score decrements (-1)
+- Scores start at 0 for all keys
+
+**Feedback:** Shows correct/incorrect status. Does not display individual scores.
+
+### Mastery Grid
+
+Grid cells are color-coded based on combined scores across all quiz modes:
+
+| Combined Score | Class | Color |
+|----------------|-------|-------|
+| <= -2 | `mastery-0` | Red |
+| <= 0 | `mastery-1` | Orange |
+| <= 2 | `mastery-2` | Neutral (default) |
+| <= 5 | `mastery-3` | Yellow-green |
+| > 5 | `mastery-4` | Green |
+
+### Offline-First Init
+
+```
+1. Load wordlist/mapping from localStorage (cached from last fetch)
+2. Load quiz state from localStorage
+3. Render immediately with cached data
+4. Background fetch: /api/wordlist, /api/mapping, /api/state
+5. If server state has higher score.total → apply server state
+6. Re-render with fresh data
+```
+
+### Sections
+
+Five tabs: **Grid** (10x10 color-coded display), **Quiz** (subnav with four modes: # -> Word, Word -> #, Mixed, Sound -> #), **Reference** (digit-to-sound table), **Translate**. Switching tabs via `showSection()` toggles CSS `display` and auto-starts quiz modes.
 
 ### Answer Checking
 
 - Exact match, case-insensitive
 - Reverse mode accepts "7" or "07" for "07"
-- Feedback shows streak progress ("streak: 2/3") or mastery status ("Mastered (45/80)")
 - Auto-advance to next question after 1800ms
-
-### Sections
-
-Four tabs: **Grid** (10×10 display), **Quiz →** (number→word), **← Reverse** (word→number), **Reference** (digit-to-sound table). Switching tabs via `showSection()` toggles CSS `display` and auto-starts quiz modes.
 
 ## Key Takeaways
 
@@ -266,5 +331,6 @@ Four tabs: **Grid** (10×10 display), **Quiz →** (number→word), **← Revers
 2. **Concrete nouns only.** Every word must trace to `physical_entity.n.01` in WordNet's hypernym graph — no abstract concepts.
 3. **Self-healing wordlist.** The server validates on startup and auto-repairs invalid entries. You can delete `wordlist.json` and it regenerates automatically.
 4. **Deterministic generation.** Same WordNet + CMU dict → same wordlist every time. No randomness in the selection algorithm.
-5. **Frontend is stateless.** All quiz logic runs client-side. The server is a static data provider with two JSON endpoints.
-6. **Pool-based spaced repetition.** Each quiz type maintains an independent pool of 10 active words. Words graduate after 3 consecutive correct answers. At 80 mastered, 1 random word gets recycled back — the quiz never "finishes".
+5. **Offline-first frontend.** Loads cached data from localStorage immediately, then syncs with the server in the background. Works even when the server is unreachable.
+6. **Server-side state persistence.** Quiz state is stored in SQLite via Django's `QuizState` model — per user (authenticated) or per IP (anonymous). State merges on registration.
+7. **Score-based quiz selection.** Each quiz type tracks per-key scores. The next question targets the lowest-scoring eligible key, with a 10-key cooldown to prevent consecutive repeats.

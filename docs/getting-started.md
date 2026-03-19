@@ -9,36 +9,43 @@
 ## Setup
 
 ```bash
-cd C:\Projects\memorization-major-system
+cd ~/Projects/memorization-major-system
 pip install -r requirements.txt
+python manage.py migrate
 ```
 
 This installs:
 - `cmudict` — CMU Pronouncing Dictionary for phoneme lookups
 - `nltk` — Natural Language Toolkit for WordNet access
 - `setuptools` — required by some dependency internals
+- `django` — web framework
+- `gunicorn` — WSGI server (production)
 
 On first run, NLTK will automatically download the `wordnet` and `omw-1.4` corpora (~30 MB).
 
 ## Running the App
 
 ```bash
-python server.py
+python manage.py runserver 8080
 ```
 
-Opens at **http://localhost:8080**. The server will:
+Opens at **http://localhost:8080**. The app will:
 1. Load `wordlist.json` (or generate it from scratch if missing)
 2. Validate all 100 entries
-3. Start serving on port 8080
+3. Start serving via Django's development server
 
 Press `Ctrl+C` to stop.
+
+In production, the app runs with gunicorn behind nginx on port 8734. The `deploy.sh` script handles `migrate`, `collectstatic`, and service restart.
 
 ## Running Tests
 
 ```bash
-python -m pytest              # run all tests
-python -m pytest test_associations.py   # wordlist validation only
-python -m pytest test_pool_quiz.py      # pool quiz logic only
+python manage.py test             # run all tests
+python manage.py test test_associations   # wordlist validation only
+python manage.py test test_pool_quiz      # quiz logic only
+python manage.py test test_api            # API + auth integration
+python manage.py test test_persistence    # JS persistence logic (requires Node.js)
 ```
 
 **test_associations.py** — validates all 100 number-noun pairs for:
@@ -47,12 +54,19 @@ python -m pytest test_pool_quiz.py      # pool quiz logic only
 - Encoding correctness (CMU phonemes match expected digits)
 - Concreteness (traces to `physical_entity.n.01`)
 
-**test_pool_quiz.py** — verifies the pool-based quiz system (25 tests):
-- Pool initialization, replacement, and shrinking
-- Streak graduation (3 correct → mastered)
-- Skip/incorrect streak reset
-- Recycle-at-80 behavior (mastered count never exceeds 80)
-- No consecutive repeats, all 100 words eventually seen
+**test_pool_quiz.py** — verifies the score-based quiz system:
+- Score-based selection, cooldown history, pick distribution
+- Skip/incorrect score decrement
+- All 100 words eventually seen
+
+**test_api.py** — Django integration tests:
+- Wordlist and mapping API endpoints
+- State GET/POST with auth and anonymous access
+- Login, register, logout flows
+- IP-based state merging on registration
+
+**test_persistence.py** — Node.js harness for JS persistence logic:
+- saveState/loadState round-trips via localStorage mock
 
 ## Regenerating the Wordlist
 
@@ -82,18 +96,41 @@ Overrides still must pass validation (encoding, noun, concrete). Run `python gen
 
 To block inappropriate words, add them to `BLOCKED_WORDS` in `generator.py`.
 
+## CLI Lookup
+
+To look up candidates for a number or check a word's encoding:
+
+```bash
+python lookup.py 47       # number -> show candidate words
+python lookup.py roof     # word -> show its number + checks
+```
+
 ## Project Structure
 
 ```
-major_system/
-├── generator.py         # Word selection + validation logic
-├── validator.py         # CMU phoneme → Major System digit encoding
-├── server.py            # HTTP server (localhost:8080)
-├── test_associations.py # Wordlist validation (4 tests × 100 subtests)
-├── test_pool_quiz.py   # Pool quiz logic tests (25 tests)
+memorization-major-system/
+├── config/
+│   ├── settings.py         # Django settings (SQLite, static files, auth)
+│   ├── urls.py             # Root URL config (includes trainer.urls)
+│   └── wsgi.py             # WSGI entry point for gunicorn
+├── trainer/
+│   ├── models.py           # QuizState model (per-user/IP quiz state)
+│   ├── views.py            # API views, auth views, index
+│   └── urls.py             # Route definitions
+├── templates/
+│   └── login.html          # Login/register page
 ├── static/
-│   └── index.html       # Single-page frontend (pool-based quiz)
-├── wordlist.json        # Generated 00–99 mappings
-├── requirements.txt     # Python dependencies
-└── docs/                # This documentation
+│   └── index.html          # Single-page frontend (score-based quiz)
+├── generator.py            # Word selection + validation logic
+├── validator.py            # CMU phoneme → Major System digit encoding
+├── lookup.py               # CLI tool for number/word lookups
+├── manage.py               # Django management command entry point
+├── test_associations.py    # Wordlist validation (4 tests × 100 subtests)
+├── test_pool_quiz.py       # Quiz logic tests
+├── test_api.py             # API + auth integration tests
+├── test_persistence.py     # JS persistence tests (Node.js harness)
+├── wordlist.json           # Generated 00–99 mappings
+├── requirements.txt        # Python dependencies
+├── deploy.sh               # VPS deployment (migrate, collectstatic, restart)
+└── docs/                   # This documentation
 ```

@@ -1,6 +1,13 @@
 import os
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
 
+import django
+django.setup()
+
+from django.conf import settings
+if 'testserver' not in settings.ALLOWED_HOSTS:
+    settings.ALLOWED_HOSTS.append('testserver')
+
 from django.test import TestCase, Client
 from django.contrib.auth.models import User
 from trainer.models import QuizState
@@ -156,7 +163,7 @@ class TestAuth(TestCase):
     def _register(self, username='testuser', password='Str0ngP@ss!'):
         return self.client.post('/register/', {
             'username': username,
-            'password1': password,
+            'password': password,
             'password2': password,
         })
 
