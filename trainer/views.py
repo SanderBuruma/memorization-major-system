@@ -35,8 +35,7 @@ def get_quiz_state(request):
 
 @ensure_csrf_cookie
 def index_view(request):
-    index_path = Path(__file__).resolve().parent.parent / 'static' / 'index.html'
-    return HttpResponse(index_path.read_text(), content_type='text/html')
+    return render(request, 'index.html')
 
 
 @require_GET

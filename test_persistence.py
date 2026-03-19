@@ -61,7 +61,7 @@ process.stdout.write(JSON.stringify(results));
 
 def _extract_js_block():
     """Extract the main <script> block from index.html (the second one)."""
-    with open("static/index.html", encoding="utf-8") as f:
+    with open("templates/index.html", encoding="utf-8") as f:
         html = f.read()
     # The app script is the last <script>...</script> block
     idx = html.rfind("<script>")
@@ -269,7 +269,7 @@ class TestSaveCallSites(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        with open("static/index.html", encoding="utf-8") as f:
+        with open("templates/index.html", encoding="utf-8") as f:
             cls.js = f.read()
 
     def _function_body(self, name):
