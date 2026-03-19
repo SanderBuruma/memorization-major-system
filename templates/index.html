@@ -10,10 +10,7 @@
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:system-ui,-apple-system,sans-serif;background:var(--bg-page);color:var(--text-primary);min-height:100vh}
 .container{max-width:1100px;margin:0 auto;padding:20px}
-.topbar-nav button{padding:6px 16px;border:1px solid var(--border-color);background:var(--bg-page);color:var(--text-secondary);
-  cursor:pointer;border-radius:6px;font-size:.88em;font-weight:600;transition:all .15s}
-.topbar-nav button:hover{background:var(--bg-nav-hover);color:var(--text-primary)}
-.topbar-nav button.active{background:var(--bg-nav-hover);color:var(--color-primary);border-color:var(--color-primary)}
+/* topbar-nav buttons inherit from .arrow-pill-center via HTML classes */
 .subnav{display:none;gap:8px;justify-content:center;margin:12px 0 18px;flex-wrap:wrap}
 .subnav.visible{display:flex}
 .subnav button{padding:7px 18px;border:1px solid var(--border-color);background:var(--bg-page);color:var(--text-secondary);
@@ -71,21 +68,41 @@ body{font-family:system-ui,-apple-system,sans-serif;background:var(--bg-page);co
 .translate-chip.odd{color:var(--text-secondary);font-style:italic;font-size:.9em;
   display:flex;align-items:center;padding:8px 12px;min-width:auto}
 
+/* Arrow pill shared */
+.arrow-pill{display:inline-flex;align-items:center;padding:6px 20px;font-weight:600;
+  font-size:.88em;border:none;cursor:pointer;transition:all .15s;position:relative;
+  background:var(--bg-page);color:var(--text-secondary)}
+.arrow-pill:hover{background:var(--bg-nav-hover);color:var(--text-primary)}
+.arrow-pill-right{clip-path:polygon(0 0,calc(100% - 10px) 0,100% 50%,calc(100% - 10px) 100%,0 100%);
+  padding-right:24px}
+.arrow-pill-left{clip-path:polygon(10px 0,100% 0,100% 100%,10px 100%,0 50%);
+  padding-left:24px}
+.arrow-pill-center{clip-path:polygon(10px 0,calc(100% - 10px) 0,100% 50%,calc(100% - 10px) 100%,10px 100%,0 50%);
+  padding:6px 24px}
+
 /* Top bar */
-.topbar{display:flex;align-items:center;gap:16px;padding:8px 20px;
+.topbar{display:flex;align-items:center;gap:4px;padding:8px 20px;
   background:var(--bg-surface);border-bottom:1px solid var(--border-color);flex-wrap:wrap}
-.topbar-title{font-size:1.15em;font-weight:700;color:var(--text-primary);margin-right:8px}
-.topbar-nav{display:flex;gap:6px;flex:1;flex-wrap:wrap}
-.topbar-right{display:flex;align-items:center;gap:10px;margin-left:auto}
-.theme-toggle{width:34px;height:34px;border-radius:50%;border:1px solid var(--border-color);
-  background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s}
+.topbar-title{font-size:1.1em;font-weight:700;color:var(--text-primary);
+  background:var(--bg-page);padding:6px 24px 6px 14px;
+  clip-path:polygon(0 0,calc(100% - 10px) 0,100% 50%,calc(100% - 10px) 100%,0 100%)}
+.topbar-nav{display:flex;gap:4px;flex:1;flex-wrap:wrap}
+.topbar-nav button{font-family:inherit}
+.topbar-nav button.active{background:var(--bg-nav-hover);color:var(--color-primary)}
+.topbar-right{display:flex;align-items:center;gap:4px;margin-left:auto}
+.theme-toggle{width:34px;height:34px;border:none;
+  background:var(--bg-page);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;
+  clip-path:polygon(10px 0,100% 0,100% 100%,10px 100%,0 50%);padding-left:12px}
 .theme-toggle:hover{background:var(--bg-nav-hover)}
 .theme-toggle svg{width:18px;height:18px;fill:var(--text-primary)}
 
-/* Auth link */
-.auth-link{color:var(--color-primary);text-decoration:none;background:none;border:1px solid var(--color-primary);
-  border-radius:4px;cursor:pointer;font-size:.9em;font-family:inherit;padding:4px 12px}
-.auth-link:hover{background:var(--color-primary);color:var(--color-on-primary)}
+/* Auth pill */
+#auth-status{font-size:1em}
+#auth-status span{font-weight:700;color:var(--text-primary);margin-right:6px}
+.auth-link{color:var(--text-secondary);text-decoration:none;background:var(--bg-page);
+  border:none;cursor:pointer;font-size:.88em;font-weight:600;font-family:inherit;
+  padding:6px 24px;clip-path:polygon(10px 0,100% 0,100% 100%,10px 100%,0 50%)}
+.auth-link:hover{background:var(--bg-nav-hover);color:var(--text-primary)}
 
 /* Mastery grid colors */
 .mastery-0 { background-color: var(--bg-mastery-0) !important; color: var(--color-mastery-0); }
@@ -98,9 +115,10 @@ body{font-family:system-ui,-apple-system,sans-serif;background:var(--bg-page);co
 @media(max-width:700px){
   .grid{grid-template-columns:repeat(5,1fr)}
   .quiz-prompt{font-size:2.4em}
-  .topbar{padding:8px 12px;gap:8px}
-  .topbar-title{font-size:1em}
-  .topbar-nav button{padding:5px 10px;font-size:.8em}
+  .topbar{padding:6px 10px;gap:2px}
+  .topbar-title{font-size:.95em;padding:5px 18px 5px 10px}
+  .arrow-pill{padding:5px 16px;font-size:.8em}
+  .arrow-pill-center{padding:5px 18px}
 }
 </style>
 </head>
@@ -108,13 +126,13 @@ body{font-family:system-ui,-apple-system,sans-serif;background:var(--bg-page);co
 <div class="topbar">
   <span class="topbar-title">Major System</span>
   <div class="topbar-nav">
-    <button class="active" data-section="grid" onclick="showSection('grid')">Grid</button>
-    <button data-section="quiz-nav" onclick="showQuizNav()">Quiz</button>
-    <button data-section="ref" onclick="showSection('ref')">Reference</button>
-    <button data-section="translate" onclick="showSection('translate')">Translate</button>
+    <button class="arrow-pill arrow-pill-center active" data-section="grid" onclick="showSection('grid')">Grid</button>
+    <button class="arrow-pill arrow-pill-center" data-section="quiz-nav" onclick="showQuizNav()">Quiz</button>
+    <button class="arrow-pill arrow-pill-center" data-section="ref" onclick="showSection('ref')">Reference</button>
+    <button class="arrow-pill arrow-pill-center" data-section="translate" onclick="showSection('translate')">Translate</button>
   </div>
   <div class="topbar-right">
-    <span id="auth-status" style="font-size:0.9em"></span>
+    <span id="auth-status"></span>
     <button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle theme" id="theme-toggle"></button>
   </div>
 </div>
@@ -337,7 +355,7 @@ function updateAuthUI(username){
   var el = document.getElementById('auth-status');
   if(!el) return;
   if(username){
-    el.innerHTML = '<span>' + username + '</span> <form method="post" action="/logout/" style="display:inline"><input type="hidden" name="csrfmiddlewaretoken" value="' + getCookie('csrftoken') + '"><button type="submit" class="auth-link">logout</button></form>';
+    el.innerHTML = '<span class="arrow-pill arrow-pill-left" style="font-weight:700;color:var(--text-primary);font-size:1em">' + username + '</span> <form method="post" action="/logout/" style="display:inline"><input type="hidden" name="csrfmiddlewaretoken" value="' + getCookie('csrftoken') + '"><button type="submit" class="auth-link">logout</button></form>';
   } else {
     el.innerHTML = '<a href="/login/" class="auth-link">login</a>';
   }
