@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login — Major System Trainer</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background: #1a1a2e;
+            color: #e0e0e0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .container {
+            background: #16213e;
+            border-radius: 8px;
+            padding: 2rem;
+            width: 100%;
+            max-width: 400px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 1.5rem;
+            color: #e94560;
+            font-size: 1.4rem;
+        }
+        h2 {
+            margin-bottom: 1rem;
+            font-size: 1.1rem;
+            color: #a8a8b3;
+            border-bottom: 1px solid #2a2a4a;
+            padding-bottom: 0.5rem;
+        }
+        .form-group {
+            margin-bottom: 1rem;
+        }
+        label {
+            display: block;
+            margin-bottom: 0.3rem;
+            font-size: 0.9rem;
+            color: #a8a8b3;
+        }
+        input[type="text"],
+        input[type="password"] {
+            width: 100%;
+            padding: 0.6rem 0.8rem;
+            background: #0f3460;
+            border: 1px solid #2a2a4a;
+            border-radius: 4px;
+            color: #e0e0e0;
+            font-size: 1rem;
+        }
+        input:focus {
+            outline: none;
+            border-color: #e94560;
+        }
+        button {
+            width: 100%;
+            padding: 0.7rem;
+            background: #e94560;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            font-size: 1rem;
+            cursor: pointer;
+            margin-top: 0.5rem;
+        }
+        button:hover {
+            background: #c73652;
+        }
+        .error {
+            background: #4a1525;
+            color: #ff6b8a;
+            padding: 0.6rem 0.8rem;
+            border-radius: 4px;
+            margin-bottom: 1rem;
+            font-size: 0.9rem;
+        }
+        .divider {
+            margin: 1.5rem 0;
+            border-top: 1px solid #2a2a4a;
+        }
+        .back-link {
+            display: block;
+            text-align: center;
+            margin-top: 1.5rem;
+            color: #a8a8b3;
+            text-decoration: none;
+            font-size: 0.9rem;
+        }
+        .back-link:hover {
+            color: #e94560;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Major System Trainer</h1>
+
+        <h2>Login</h2>
+        {% if error %}
+        <div class="error">{{ error }}</div>
+        {% endif %}
+        <form method="post" action="{% url 'login' %}">
+            {% csrf_token %}
+            <div class="form-group">
+                <label for="login-username">Username</label>
+                <input type="text" id="login-username" name="username" required autofocus>
+            </div>
+            <div class="form-group">
+                <label for="login-password">Password</label>
+                <input type="password" id="login-password" name="password" required>
+            </div>
+            <button type="submit">Login</button>
+        </form>
+
+        <div class="divider"></div>
+
+        <h2>Register</h2>
+        {% if reg_error %}
+        <div class="error">{{ reg_error }}</div>
+        {% endif %}
+        <form method="post" action="{% url 'register' %}">
+            {% csrf_token %}
+            <div class="form-group">
+                <label for="reg-username">Username</label>
+                <input type="text" id="reg-username" name="username" required>
+            </div>
+            <div class="form-group">
+                <label for="reg-password">Password</label>
+                <input type="password" id="reg-password" name="password" required>
+            </div>
+            <div class="form-group">
+                <label for="reg-password2">Confirm Password</label>
+                <input type="password" id="reg-password2" name="password2" required>
+            </div>
+            <button type="submit">Register</button>
+        </form>
+
+        <a class="back-link" href="/">Back to trainer</a>
+    </div>
+</body>
+</html>
