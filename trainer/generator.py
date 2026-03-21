@@ -81,8 +81,10 @@ def is_concrete_noun_synset(synset):
 def get_concrete_nouns():
     """Return a set of single-word concrete nouns from WordNet.
 
-    A noun is *concrete* if at least one of its synsets is a hyponym of
-    ``physical_entity.n.01``.
+    Uses a narrow definition: a noun is included only if at least one of
+    its synsets is a hyponym of ``physical_entity.n.01``.  The separate
+    ``is_word_concrete()`` function used for wordlist validation is broader,
+    accepting additional roots like ``social_group`` and ``imaginary_being``.
     """
     ensure_nltk_data()
     physical_entity = wn.synset('physical_entity.n.01')

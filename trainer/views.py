@@ -85,6 +85,7 @@ _FIELD_MAP = {
 }
 _STATE_KEYS = set(_FIELD_MAP) | {'score', 'theme', 'tutorialSeen', 'dyslexiaFont'}
 MAX_STATE_PAYLOAD = 102_400  # 100 KB
+_VALID_THEMES = {'dark', 'light', 'oled', 'high-contrast'}
 
 
 def state_view(request):
@@ -126,7 +127,6 @@ def state_view(request):
             if isinstance(correct, int) and isinstance(total, int) and correct >= 0 and total >= 0:
                 state.score_correct = correct
                 state.score_total = total
-        _VALID_THEMES = {'dark', 'light', 'oled', 'high-contrast'}
         if 'theme' in data and data['theme'] in _VALID_THEMES:
             state.theme = data['theme']
         if 'tutorialSeen' in data and isinstance(data['tutorialSeen'], bool):
