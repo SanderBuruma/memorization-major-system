@@ -6,6 +6,7 @@
 <title>Major System Trainer</title>
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 {% load static %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/open-dyslexic@1.0.3/open-dyslexic-regular.css">
 <link rel="stylesheet" href="{% static 'css/app.css' %}">
 </head>
 <body>
@@ -117,15 +118,99 @@
   <!-- TRANSLATE ------------------------------------------------------ -->
   <div id="section-translate" class="section">
     <div class="translate-area">
+      <h3 class="translate-heading">Number &rarr; Words</h3>
       <input class="quiz-input" id="translate-input" placeholder="type numbers..."
              autocomplete="off" spellcheck="false" style="width:100%;max-width:400px;font-size:1.2em" aria-label="Type numbers to translate">
       <div id="translate-output" class="translate-output"></div>
+    </div>
+    <div class="translate-area">
+      <h3 class="translate-heading">Words &rarr; Number</h3>
+      <input class="quiz-input" id="reverse-translate-input" placeholder="type words..."
+             autocomplete="off" spellcheck="false" style="width:100%;max-width:400px;font-size:1.2em" aria-label="Type words to encode as numbers">
+      <div id="reverse-translate-output" class="translate-output"></div>
     </div>
   </div>
 
   <!-- PROFILE -------------------------------------------------------- -->
   <div id="section-profile" class="section">
     <div class="profile-area" id="profile-content"></div>
+  </div>
+
+  <!-- TUTORIAL ------------------------------------------------------- -->
+  <div id="section-tutorial" class="section">
+    <div class="tutorial-area">
+      <div class="tutorial-steps" id="tutorial-steps">
+        <div class="tutorial-step" data-step="0">
+          <h2>What is the Major System?</h2>
+          <p>The Major System is a mnemonic technique that converts <strong>numbers into words</strong> by mapping each digit to a consonant sound.</p>
+          <p>Vowels and the sounds W, H, Y are ignored — they are free to use anywhere. Only consonant sounds matter.</p>
+          <p>By turning abstract numbers into concrete images, you can remember long sequences effortlessly.</p>
+        </div>
+        <div class="tutorial-step" data-step="1">
+          <h2>The Mapping</h2>
+          <table class="ref-table tutorial-ref">
+            <thead><tr><th>Digit</th><th>Sounds</th><th>Mnemonic</th></tr></thead>
+            <tbody>
+              <tr><td><strong>0</strong></td><td>S, Z</td><td><em>z</em>ero</td></tr>
+              <tr><td><strong>1</strong></td><td>T, D, Th</td><td>one downstroke</td></tr>
+              <tr><td><strong>2</strong></td><td>N</td><td>two downstrokes</td></tr>
+              <tr><td><strong>3</strong></td><td>M</td><td>three downstrokes</td></tr>
+              <tr><td><strong>4</strong></td><td>R</td><td><em>r</em> in fou<em>r</em></td></tr>
+              <tr><td><strong>5</strong></td><td>L</td><td>L = Roman 50</td></tr>
+              <tr><td><strong>6</strong></td><td>Sh, Ch, J, Zh</td><td>J mirrored = 6</td></tr>
+              <tr><td><strong>7</strong></td><td>K, G (hard), Ng</td><td>K has two 7s</td></tr>
+              <tr><td><strong>8</strong></td><td>F, V</td><td>f in script = 8</td></tr>
+              <tr><td><strong>9</strong></td><td>P, B</td><td>P mirrored = 9</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="tutorial-step" data-step="2">
+          <h2>How Encoding Works</h2>
+          <p>To encode a number, find a word whose consonant sounds match the digits in order.</p>
+          <div class="tutorial-example">
+            <div class="tutorial-example-row">
+              <span class="tutorial-word">tie</span>
+              <span class="tutorial-arrow">&rarr;</span>
+              <span class="tutorial-breakdown">T = <strong>1</strong></span>
+              <span class="tutorial-arrow">&rarr;</span>
+              <span class="tutorial-result">01</span>
+            </div>
+            <div class="tutorial-example-row">
+              <span class="tutorial-word">moon</span>
+              <span class="tutorial-arrow">&rarr;</span>
+              <span class="tutorial-breakdown">M = <strong>3</strong>, N = <strong>2</strong></span>
+              <span class="tutorial-arrow">&rarr;</span>
+              <span class="tutorial-result">32</span>
+            </div>
+            <div class="tutorial-example-row">
+              <span class="tutorial-word">fire</span>
+              <span class="tutorial-arrow">&rarr;</span>
+              <span class="tutorial-breakdown">F = <strong>8</strong>, R = <strong>4</strong></span>
+              <span class="tutorial-arrow">&rarr;</span>
+              <span class="tutorial-result">84</span>
+            </div>
+          </div>
+          <p>Notice how vowels (o, i, e) are ignored — only the consonant sounds determine the digits.</p>
+        </div>
+        <div class="tutorial-step" data-step="3">
+          <h2>Try It!</h2>
+          <p>What two-digit number does each word encode?</p>
+          <div id="tutorial-quiz"></div>
+        </div>
+        <div class="tutorial-step" data-step="4">
+          <h2>You're Ready!</h2>
+          <p>You now know the basics of the Major System. The <strong>Grid</strong> shows all 100 number-word pairs (00-99) for you to memorize.</p>
+          <p>Use the <strong>Quiz</strong> modes to test yourself, and the <strong>Reference</strong> table whenever you need a reminder.</p>
+        </div>
+      </div>
+      <div class="tutorial-progress">
+        <span id="tutorial-dots"></span>
+      </div>
+      <div class="tutorial-nav">
+        <button class="quiz-btn skip" id="tutorial-prev" onclick="prevTutorialStep()" aria-label="Previous tutorial step">Previous</button>
+        <button class="quiz-btn" id="tutorial-next" onclick="nextTutorialStep()" aria-label="Next tutorial step">Next</button>
+      </div>
+    </div>
   </div>
 
   <!-- SETTINGS ------------------------------------------------------- -->
@@ -147,6 +232,12 @@
         </select>
       </label>
       <p class="setting-hint">Choose your preferred color theme. OLED uses pure black. High contrast meets WCAG AAA guidelines.</p>
+      <label class="setting-row">
+        <span>Dyslexia-friendly font (OpenDyslexic)</span>
+        <input type="checkbox" id="setting-dyslexia" onchange="toggleDyslexiaFont(this.checked)">
+      </label>
+      <p class="setting-hint">Switch the entire app to the OpenDyslexic font for improved readability.</p>
+      <button class="quiz-btn" style="margin-top:20px;width:100%" onclick="showSection('tutorial')">Replay Tutorial</button>
     </div>
   </div>
 

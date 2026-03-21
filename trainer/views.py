@@ -122,7 +122,7 @@ def state_view(request):
             if isinstance(correct, int) and isinstance(total, int) and correct >= 0 and total >= 0:
                 state.score_correct = correct
                 state.score_total = total
-        if 'theme' in data:
+        if 'theme' in data and isinstance(data['theme'], str) and len(data['theme']) <= 20:
             state.theme = data['theme']
         if 'tutorialSeen' in data and isinstance(data['tutorialSeen'], bool):
             state.tutorial_seen = data['tutorialSeen']

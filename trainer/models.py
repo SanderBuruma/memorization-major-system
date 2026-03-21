@@ -21,5 +21,5 @@ class QuizState(models.Model):
 
     tutorial_seen = models.BooleanField(default=False)
     dyslexia_font = models.BooleanField(default=False)
-    theme = models.CharField(max_length=5, default='dark')
+    theme = models.CharField(max_length=20, default='dark')
     updated_at = models.DateTimeField(auto_now=True)
