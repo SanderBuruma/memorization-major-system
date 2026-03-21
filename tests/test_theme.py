@@ -1,6 +1,6 @@
 """Unit tests verifying dark theme is dark and light theme is light.
 
-Parses CSS custom properties from templates/css/theme.css and checks
+Parses CSS custom properties from src/scss/_variables.scss and checks
 luminance to ensure backgrounds and text colors match their theme.
 
 Run:
@@ -12,7 +12,7 @@ import re
 import unittest
 from pathlib import Path
 
-CSS_PATH = Path(__file__).parent / "templates" / "css" / "theme.css"
+CSS_PATH = Path(__file__).resolve().parent.parent / "src" / "scss" / "_variables.scss"
 
 # Variable classifications
 BG_VARS = {"--bg-page", "--bg-surface", "--bg-nav-hover", "--bg-success", "--bg-error", "--bg-stripe",

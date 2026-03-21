@@ -1,0 +1,26 @@
+.ref-wrap {
+  max-width: 520px;
+  margin: 0 auto;
+}
+
+.ref-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+
+  th, td {
+    padding: 10px 14px;
+    border: 1px solid var(--border-color);
+    text-align: center;
+  }
+
+  th {
+    background: var(--color-primary);
+    color: var(--color-on-primary);
+    font-weight: 600;
+  }
+
+  tr:nth-child(even) {
+    background: var(--bg-stripe);
+  }
+}

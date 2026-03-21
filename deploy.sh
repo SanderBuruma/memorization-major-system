@@ -6,6 +6,8 @@ git fetch origin master
 git reset --hard origin/master
 source venv/bin/activate
 pip install -q -r requirements.txt
+npm ci --ignore-scripts
+npm run build
 python manage.py migrate --no-input
 python manage.py collectstatic --no-input
 sudo systemctl restart memorization

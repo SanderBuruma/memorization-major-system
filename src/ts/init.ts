@@ -1,4 +1,4 @@
-import { S, rebuildWordlist } from './state';
+import { appState, rebuildWordlist } from './state';
 import { getCookie, loadState, applyState, saveState } from './persistence';
 import { toggleTheme, updateToggleIcon } from './theme';
 import { startQuiz, checkQuiz, skipQuiz, startReverse, checkReverse, skipReverse,
@@ -18,12 +18,12 @@ function updateAuthUI(username: string | null): void {
 }
 
 function buildConMap(): void {
-  S.conKeys = [];
-  S.conMap = {};
-  for (const digit of Object.keys(S.mapping)) {
-    S.mapping[digit].split(', ').forEach((c) => {
-      S.conKeys.push(c);
-      S.conMap[c] = digit;
+  appState.conKeys = [];
+  appState.conMap = {};
+  for (const digit of Object.keys(appState.mapping)) {
+    appState.mapping[digit].split(', ').forEach((consonant) => {
+      appState.conKeys.push(consonant);
+      appState.conMap[consonant] = digit;
     });
   }
 }
@@ -32,8 +32,8 @@ async function init(): Promise<void> {
   const cachedWl = localStorage.getItem('wordlist');
   const cachedMap = localStorage.getItem('mapping');
   if (cachedWl && cachedMap) {
-    S.defaultWordlist = JSON.parse(cachedWl);
-    S.mapping = JSON.parse(cachedMap);
+    appState.defaultWordlist = JSON.parse(cachedWl);
+    appState.mapping = JSON.parse(cachedMap);
   }
 
   loadState();
@@ -50,18 +50,18 @@ async function init(): Promise<void> {
     ]);
     const [wlRes, mapRes, stateRes] = results;
     if (wlRes.ok) {
-      S.defaultWordlist = await wlRes.json();
-      localStorage.setItem('wordlist', JSON.stringify(S.defaultWordlist));
+      appState.defaultWordlist = await wlRes.json();
+      localStorage.setItem('wordlist', JSON.stringify(appState.defaultWordlist));
       rebuildWordlist();
     }
     if (mapRes.ok) {
-      S.mapping = await mapRes.json();
-      localStorage.setItem('mapping', JSON.stringify(S.mapping));
+      appState.mapping = await mapRes.json();
+      localStorage.setItem('mapping', JSON.stringify(appState.mapping));
       buildConMap();
     }
     if (stateRes.ok) {
       const serverState: ServerState = await stateRes.json();
-      if (serverState.user || (serverState.score && serverState.score.total > S.score.total)) {
+      if (serverState.user || (serverState.score && serverState.score.total > appState.score.total)) {
         applyState(serverState as unknown as Record<string, unknown>);
       }
       updateAuthUI(serverState.user);

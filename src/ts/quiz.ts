@@ -1,76 +1,76 @@
-import { S, MODES } from './state';
+import { appState, MODES } from './state';
 import { QuizItem, QuizMode } from './types';
 import { saveState } from './persistence';
 import { updateScore } from './ui';
 
 function pickNext(scores: Record<string, number>, history: string[], allKeys: string[]): string {
-  let eligible = allKeys.filter((k) => history.indexOf(k) === -1);
+  let eligible = allKeys.filter((key) => history.indexOf(key) === -1);
   if (eligible.length === 0) eligible = allKeys.slice();
   let minScore = Infinity;
-  for (const k of eligible) {
-    const s = scores[k] ?? 0;
-    if (s < minScore) minScore = s;
+  for (const key of eligible) {
+    const score = scores[key] ?? 0;
+    if (score < minScore) minScore = score;
   }
-  const candidates = eligible.filter((k) => (scores[k] ?? 0) === minScore);
+  const candidates = eligible.filter((key) => (scores[key] ?? 0) === minScore);
   return candidates[Math.floor(Math.random() * candidates.length)];
 }
 
-export function startMode<T extends QuizItem>(m: QuizMode<T>): void {
-  if (m.timer) clearTimeout(m.timer);
-  const pick = pickNext(m.scores, m.history, m.allKeys());
+export function startMode<T extends QuizItem>(mode: QuizMode<T>): void {
+  if (mode.timer) clearTimeout(mode.timer);
+  const pick = pickNext(mode.scores, mode.history, mode.allKeys());
   if (!pick) return;
-  const item = m.pickItem(pick);
-  m.current = item;
-  document.getElementById(m.promptId)!.textContent = m.getPrompt(item);
-  const inp = document.getElementById(m.inputId) as HTMLInputElement;
+  const item = mode.pickItem(pick);
+  mode.current = item;
+  document.getElementById(mode.promptId)!.textContent = mode.getPrompt(item);
+  const inp = document.getElementById(mode.inputId) as HTMLInputElement;
   inp.value = '';
   inp.disabled = false;
-  inp.placeholder = m.placeholder;
-  (document.getElementById(m.submitId) as HTMLButtonElement).disabled = false;
-  const fb = document.getElementById(m.feedbackId)!;
+  inp.placeholder = mode.placeholder;
+  (document.getElementById(mode.submitId) as HTMLButtonElement).disabled = false;
+  const fb = document.getElementById(mode.feedbackId)!;
   fb.className = 'feedback empty';
   fb.textContent = '';
-  if (m.startExtra) m.startExtra(item, inp);
+  if (mode.startExtra) mode.startExtra(item, inp);
   inp.focus();
 }
 
-export function checkMode<T extends QuizItem>(m: QuizMode<T>): void {
-  if (!m.current) return;
-  const inp = document.getElementById(m.inputId) as HTMLInputElement;
+export function checkMode<T extends QuizItem>(mode: QuizMode<T>): void {
+  if (!mode.current) return;
+  const inp = document.getElementById(mode.inputId) as HTMLInputElement;
   const raw = inp.value.trim();
   if (!raw) return;
   inp.disabled = true;
-  (document.getElementById(m.submitId) as HTMLButtonElement).disabled = true;
+  (document.getElementById(mode.submitId) as HTMLButtonElement).disabled = true;
 
-  const answer = m.normalize(raw, m.current);
-  const correct = m.getAnswer(m.current);
-  const key = m.historyKey(m.current);
-  S.score.total++;
-  const fb = document.getElementById(m.feedbackId)!;
+  const answer = mode.normalize(raw, mode.current);
+  const correct = mode.getAnswer(mode.current);
+  const key = mode.historyKey(mode.current);
+  appState.score.total++;
+  const fb = document.getElementById(mode.feedbackId)!;
   if (answer === correct) {
-    S.score.correct++;
-    m.scores[key] = (m.scores[key] ?? 0) + 1;
+    appState.score.correct++;
+    mode.scores[key] = (mode.scores[key] ?? 0) + 1;
     fb.className = 'feedback correct';
     fb.textContent = 'Correct!';
   } else {
-    m.scores[key] = (m.scores[key] ?? 0) - 1;
+    mode.scores[key] = (mode.scores[key] ?? 0) - 1;
     fb.className = 'feedback incorrect';
-    fb.textContent = `Incorrect. Answer: ${m.formatCorrect(m.current)}`;
+    fb.textContent = `Incorrect. Answer: ${mode.formatCorrect(mode.current)}`;
   }
-  m.history.push(key);
-  if (m.history.length > 10) m.history.shift();
+  mode.history.push(key);
+  if (mode.history.length > 10) mode.history.shift();
   updateScore();
   saveState();
-  m.timer = setTimeout(() => { startMode(m); }, 1800);
+  mode.timer = setTimeout(() => { startMode(mode); }, 1800);
 }
 
-export function skipMode<T extends QuizItem>(m: QuizMode<T>): void {
-  if (m.current) {
-    m.history.push(m.historyKey(m.current));
-    if (m.history.length > 10) m.history.shift();
+export function skipMode<T extends QuizItem>(mode: QuizMode<T>): void {
+  if (mode.current) {
+    mode.history.push(mode.historyKey(mode.current));
+    if (mode.history.length > 10) mode.history.shift();
     saveState();
   }
-  startMode(m);
+  startMode(mode);
 }
 
 /* Thin wrappers for HTML onclick handlers */

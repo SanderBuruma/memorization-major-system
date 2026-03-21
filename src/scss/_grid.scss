@@ -1,0 +1,63 @@
+@use 'variables' as *;
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat($grid-columns, 1fr);
+  gap: 4px;
+}
+
+.grid-cell {
+  text-align: center;
+  padding: 10px 2px;
+  background: var(--bg-surface);
+  border-radius: $border-radius-sm;
+  border: 1px solid var(--border-color);
+  transition: transform .1s, box-shadow .1s, border-color $transition-speed;
+  cursor: text;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px var(--shadow-hover);
+  }
+
+  &:focus-within {
+    border-color: var(--color-primary);
+  }
+
+  .number {
+    font-weight: 700;
+    color: var(--color-primary);
+    font-size: 1.1em;
+  }
+
+  .word {
+    font-size: .82em;
+    color: var(--text-muted);
+    margin-top: 2px;
+  }
+
+  .word-input {
+    background: transparent;
+    color: var(--text-muted);
+    border: none;
+    outline: none;
+    font-size: .82em;
+    text-align: center;
+    width: 100%;
+    margin-top: 2px;
+    font-family: inherit;
+  }
+}
+
+.custom-marker {
+  color: var(--color-primary);
+  font-size: .7em;
+  vertical-align: super;
+}
+
+// Mastery grid colors
+.mastery-0 { background-color: var(--bg-mastery-0) !important; color: var(--color-mastery-0); }
+.mastery-1 { background-color: var(--bg-mastery-1) !important; color: var(--color-mastery-1); }
+.mastery-2 { }
+.mastery-3 { background-color: var(--bg-mastery-3) !important; color: var(--color-mastery-3); }
+.mastery-4 { background-color: var(--bg-mastery-4) !important; color: var(--color-mastery-4); }

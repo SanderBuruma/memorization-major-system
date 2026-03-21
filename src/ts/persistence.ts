@@ -1,17 +1,17 @@
-import { S, STATE_FIELDS, rebuildWordlist } from './state';
+import { appState, STATE_FIELDS, rebuildWordlist } from './state';
 import { updateMasteryColors, updateScore, renderGrid } from './ui';
 
 export function getCookie(name: string): string {
-  const c = document.cookie ?? '';
-  const v = c.match(`(^|;)\\s*${name}\\s*=\\s*([^;]+)`);
-  return v ? v.pop()! : '';
+  const cookieStr = document.cookie ?? '';
+  const match = cookieStr.match(`(^|;)\\s*${name}\\s*=\\s*([^;]+)`);
+  return match ? match.pop()! : '';
 }
 
 let _syncTimer: ReturnType<typeof setTimeout> | null = null;
 
 export function saveState(): void {
   const state: Record<string, unknown> = {};
-  STATE_FIELDS.forEach((f) => { state[f.key] = f.get(); });
+  STATE_FIELDS.forEach((field) => { state[field.key] = field.get(); });
   state.theme = document.documentElement.getAttribute('data-theme') ?? 'dark';
   localStorage.setItem('quizState', JSON.stringify(state));
   if (_syncTimer) clearTimeout(_syncTimer);
@@ -27,18 +27,18 @@ export function saveState(): void {
 
 export function loadState(): void {
   try {
-    const s = JSON.parse(localStorage.getItem('quizState')!);
-    if (!s) return;
-    if (s.quizPool || s.quizMastered) {
+    const stored = JSON.parse(localStorage.getItem('quizState')!);
+    if (!stored) return;
+    if (stored.quizPool || stored.quizMastered) {
       localStorage.removeItem('quizState');
       return;
     }
-    STATE_FIELDS.forEach((f) => { f.set(s[f.key]); });
+    STATE_FIELDS.forEach((field) => { field.set(stored[field.key]); });
   } catch {}
 }
 
-export function applyState(s: Record<string, unknown>): void {
-  STATE_FIELDS.forEach((f) => { f.set(s[f.key]); });
+export function applyState(state: Record<string, unknown>): void {
+  STATE_FIELDS.forEach((field) => { field.set(state[field.key]); });
   rebuildWordlist();
   saveState();
   updateScore();

@@ -1,6 +1,6 @@
 import { AppState, AllModes, WordQuizItem, ConsonantQuizItem, StateField } from './types';
 
-export const S: AppState = {
+export const appState: AppState = {
   wordlist: {},
   defaultWordlist: {},
   customWords: {},
@@ -17,8 +17,8 @@ export const MODES: AllModes = {
     feedbackId: 'quiz-feedback', submitId: 'quiz-submit',
     scores: {}, history: [], current: null, timer: null,
     persistScores: 'quizScores', persistHistory: 'quizHistory',
-    allKeys() { return S.keys; },
-    pickItem(k) { return { digits: k, word: S.wordlist[k] }; },
+    allKeys() { return appState.keys; },
+    pickItem(k) { return { digits: k, word: appState.wordlist[k] }; },
     getPrompt(item) { return item.digits; },
     getAnswer(item) { return item.word.toLowerCase(); },
     normalize(raw) { return raw.toLowerCase(); },
@@ -31,8 +31,8 @@ export const MODES: AllModes = {
     feedbackId: 'rev-feedback', submitId: 'rev-submit',
     scores: {}, history: [], current: null, timer: null,
     persistScores: 'reverseScores', persistHistory: 'reverseHistory',
-    allKeys() { return S.keys; },
-    pickItem(k) { return { digits: k, word: S.wordlist[k] }; },
+    allKeys() { return appState.keys; },
+    pickItem(k) { return { digits: k, word: appState.wordlist[k] }; },
     getPrompt(item) { return item.word; },
     getAnswer(item) { return item.digits; },
     normalize(raw) { return raw.padStart(2, '0'); },
@@ -45,10 +45,10 @@ export const MODES: AllModes = {
     feedbackId: 'mix-feedback', submitId: 'mix-submit',
     scores: {}, history: [], current: null, timer: null,
     persistScores: 'mixedScores', persistHistory: 'mixedHistory',
-    allKeys() { return S.keys; },
+    allKeys() { return appState.keys; },
     pickItem(k): WordQuizItem {
       const mode = Math.random() < 0.5 ? 'forward' : 'reverse';
-      return { digits: k, word: S.wordlist[k], mode };
+      return { digits: k, word: appState.wordlist[k], mode };
     },
     getPrompt(item) { return item.mode === 'forward' ? item.digits : item.word; },
     getAnswer(item) { return item.mode === 'forward' ? item.word.toLowerCase() : item.digits; },
@@ -71,32 +71,32 @@ export const MODES: AllModes = {
     feedbackId: 'con-feedback', submitId: 'con-submit',
     scores: {}, history: [], current: null, timer: null,
     persistScores: 'conScores', persistHistory: 'conHistory',
-    allKeys() { return S.conKeys; },
+    allKeys() { return appState.conKeys; },
     pickItem(k) { return { key: k }; },
     getPrompt(item) { const d: Record<string, string> = { C: 'C (hard)', G: 'G (hard)' }; return d[item.key] ?? item.key; },
-    getAnswer(item) { return S.conMap[item.key]; },
+    getAnswer(item) { return appState.conMap[item.key]; },
     normalize(raw) { return raw; },
-    formatCorrect(item) { return S.conMap[item.key]; },
+    formatCorrect(item) { return appState.conMap[item.key]; },
     placeholder: 'type the digit...',
     historyKey(item) { return item.key; },
   },
 };
 
 export const STATE_FIELDS: StateField[] = [
-  { key: 'score', get() { return S.score; }, set(v) { S.score = (v as typeof S.score) ?? { correct: 0, total: 0 }; } },
-  { key: 'customWords', get() { return S.customWords; }, set(v) { S.customWords = (v as typeof S.customWords) ?? {}; } },
+  { key: 'score', get() { return appState.score; }, set(v) { appState.score = (v as typeof appState.score) ?? { correct: 0, total: 0 }; } },
+  { key: 'customWords', get() { return appState.customWords; }, set(v) { appState.customWords = (v as typeof appState.customWords) ?? {}; } },
 ];
 for (const name of Object.keys(MODES) as (keyof AllModes)[]) {
-  const m = MODES[name];
+  const mode = MODES[name];
   STATE_FIELDS.push(
-    { key: m.persistScores, get() { return m.scores; }, set(v) { m.scores = (v as typeof m.scores) ?? {}; } },
-    { key: m.persistHistory, get() { return m.history; }, set(v) { m.history = (v as typeof m.history) ?? []; } },
+    { key: mode.persistScores, get() { return mode.scores; }, set(v) { mode.scores = (v as typeof mode.scores) ?? {}; } },
+    { key: mode.persistHistory, get() { return mode.history; }, set(v) { mode.history = (v as typeof mode.history) ?? []; } },
   );
 }
 
 export function rebuildWordlist(): void {
-  S.wordlist = {};
-  for (const k of Object.keys(S.defaultWordlist)) S.wordlist[k] = S.defaultWordlist[k];
-  for (const k of Object.keys(S.customWords)) S.wordlist[k] = S.customWords[k];
-  S.keys = Object.keys(S.wordlist).sort();
+  appState.wordlist = {};
+  for (const key of Object.keys(appState.defaultWordlist)) appState.wordlist[key] = appState.defaultWordlist[key];
+  for (const key of Object.keys(appState.customWords)) appState.wordlist[key] = appState.customWords[key];
+  appState.keys = Object.keys(appState.wordlist).sort();
 }

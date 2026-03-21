@@ -8,8 +8,8 @@ from django.shortcuts import redirect, render
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.views.decorators.http import require_GET, require_POST
 
-from generator import load_or_generate_wordlist
-from validator import DIGIT_TO_SOUNDS
+from trainer.generator import load_or_generate_wordlist
+from trainer.validator import DIGIT_TO_SOUNDS
 
 from .models import QuizState
 

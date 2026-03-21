@@ -1,23 +1,23 @@
-import { S, MODES } from './state';
+import { appState, MODES } from './state';
 
 export function renderProfile(): void {
   const el = document.getElementById('profile-content')!;
-  const allKeys = S.keys.length ? S.keys : [];
-  const combined = allKeys.map((k) =>
-    (MODES.quiz.scores[k] ?? 0) + (MODES.reverse.scores[k] ?? 0) + (MODES.mixed.scores[k] ?? 0)
+  const allKeys = appState.keys.length ? appState.keys : [];
+  const combined = allKeys.map((key) =>
+    (MODES.quiz.scores[key] ?? 0) + (MODES.reverse.scores[key] ?? 0) + (MODES.mixed.scores[key] ?? 0)
   );
-  const n = allKeys.length || 1;
-  const qCov = Math.round(allKeys.filter((k) => MODES.quiz.scores[k] !== undefined).length / n * 100);
-  const rCov = Math.round(allKeys.filter((k) => MODES.reverse.scores[k] !== undefined).length / n * 100);
-  const mCov = Math.round(allKeys.filter((k) => MODES.mixed.scores[k] !== undefined).length / n * 100);
-  const cAtt = S.conKeys.filter((k) => MODES.consonant.scores[k] !== undefined).length;
-  const cCov = S.conKeys.length ? Math.round(cAtt / S.conKeys.length * 100) : 0;
+  const totalKeys = allKeys.length || 1;
+  const qCov = Math.round(allKeys.filter((key) => MODES.quiz.scores[key] !== undefined).length / totalKeys * 100);
+  const rCov = Math.round(allKeys.filter((key) => MODES.reverse.scores[key] !== undefined).length / totalKeys * 100);
+  const mCov = Math.round(allKeys.filter((key) => MODES.mixed.scores[key] !== undefined).length / totalKeys * 100);
+  const cAtt = appState.conKeys.filter((key) => MODES.consonant.scores[key] !== undefined).length;
+  const cCov = appState.conKeys.length ? Math.round(cAtt / appState.conKeys.length * 100) : 0;
   const mast = [0, 0, 0, 0, 0];
-  combined.forEach((s) => {
-    if (s <= -3) mast[0]++;
-    else if (s < 0) mast[1]++;
-    else if (s <= 3) mast[2]++;
-    else if (s <= 8) mast[3]++;
+  combined.forEach((score) => {
+    if (score <= -3) mast[0]++;
+    else if (score < 0) mast[1]++;
+    else if (score <= 3) mast[2]++;
+    else if (score <= 8) mast[3]++;
     else mast[4]++;
   });
   const sorted = combined.slice().sort((a, b) => a - b);
@@ -28,17 +28,17 @@ export function renderProfile(): void {
     const mid = Math.floor(sorted.length / 2);
     sMed = sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
   }
-  const cScores = S.conKeys.map((k) => MODES.consonant.scores[k] ?? 0).sort((a, b) => a - b);
+  const cScores = appState.conKeys.map((key) => MODES.consonant.scores[key] ?? 0).sort((a, b) => a - b);
   let cMed = 0;
   if (cScores.length) {
     const cm = Math.floor(cScores.length / 2);
     cMed = cScores.length % 2 ? cScores[cm] : (cScores[cm - 1] + cScores[cm]) / 2;
   }
-  const pct = S.score.total > 0 ? (S.score.correct / S.score.total * 100).toFixed(1) : 0;
+  const pct = appState.score.total > 0 ? (appState.score.correct / appState.score.total * 100).toFixed(1) : 0;
   const labels = ['Struggling', 'Weak', 'Learning', 'Good', 'Mastered'];
   const mastMax = Math.max(...mast) || 1;
   let html = `<div class="card"><h2>Overall</h2>`
-    + `<div class="stat-row"><span class="label">Total attempts</span><span class="value">${S.score.total}</span></div>`
+    + `<div class="stat-row"><span class="label">Total attempts</span><span class="value">${appState.score.total}</span></div>`
     + `<div class="stat-row"><span class="label">Accuracy</span><span class="value">${pct}%</span></div>`
     + `</div>`
     + `<div class="card"><h2>Coverage by mode</h2><div class="cov-grid">`
@@ -48,11 +48,11 @@ export function renderProfile(): void {
     + `<div class="cov-item"><div class="cov-pct">${cCov}%</div><div class="cov-label">Sound &rarr; #</div></div>`
     + `</div></div>`
     + `<div class="card"><h2>Mastery distribution</h2>`;
-  for (let i = 0; i < 5; i++) {
-    const w = Math.round(mast[i] / mastMax * 100);
-    html += `<div class="bar-row m${i}"><span class="bar-label">${labels[i]}</span>`
-      + `<div class="bar-track"><div class="bar-fill" style="width:${w}%"></div></div>`
-      + `<span class="bar-count">${mast[i]}</span></div>`;
+  for (let tier = 0; tier < 5; tier++) {
+    const barWidth = Math.round(mast[tier] / mastMax * 100);
+    html += `<div class="bar-row m${tier}"><span class="bar-label">${labels[tier]}</span>`
+      + `<div class="bar-track"><div class="bar-fill" style="width:${barWidth}%"></div></div>`
+      + `<span class="bar-count">${mast[tier]}</span></div>`;
   }
   html += `</div>`
     + `<div class="card"><h2>Combined score</h2>`

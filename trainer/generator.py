@@ -13,11 +13,11 @@ from pathlib import Path
 import nltk
 from nltk.corpus import wordnet as wn
 
-from validator import word_to_digits, number_to_digits
+from trainer.validator import word_to_digits, number_to_digits
 
 logger = logging.getLogger(__name__)
 
-WORDLIST_PATH = Path(__file__).parent / 'wordlist.json'
+WORDLIST_PATH = Path(__file__).resolve().parent.parent / 'wordlist.json'
 
 # Words to exclude (offensive, abbreviations, or poor for memorization)
 BLOCKED_WORDS = {

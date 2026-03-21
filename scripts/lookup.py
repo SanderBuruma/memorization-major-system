@@ -9,10 +9,12 @@ import json
 import sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
 import cmudict
 
-from validator import word_to_digits, word_to_phonemes, number_to_digits, phonemes_to_digits, PHONEME_TO_DIGIT
-from generator import (
+from trainer.validator import word_to_digits, word_to_phonemes, number_to_digits, phonemes_to_digits, PHONEME_TO_DIGIT
+from trainer.generator import (
     ensure_nltk_data, is_word_concrete, is_word_noun,
     get_concrete_nouns, build_candidate_map, select_best_word,
     WORDLIST_PATH,

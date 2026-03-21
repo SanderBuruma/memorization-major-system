@@ -1,0 +1,102 @@
+@use 'variables' as *;
+
+.profile-area {
+  max-width: 700px;
+  margin: 0 auto;
+
+  .card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-color);
+    border-radius: $border-radius-md;
+    padding: 18px 20px;
+    margin-bottom: 14px;
+
+    h2 {
+      font-size: 1.05em;
+      color: var(--color-primary);
+      margin-bottom: 10px;
+    }
+  }
+
+  .stat-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 4px 0;
+    font-size: .95em;
+
+    .label {
+      color: var(--text-secondary);
+    }
+
+    .value {
+      font-weight: 600;
+    }
+  }
+
+  .bar-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 4px 0;
+    font-size: .9em;
+  }
+
+  .bar-label {
+    width: 80px;
+    text-align: right;
+    color: var(--text-secondary);
+    flex-shrink: 0;
+  }
+
+  .bar-track {
+    flex: 1;
+    height: 22px;
+    background: var(--bg-page);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  .bar-fill {
+    height: 100%;
+    border-radius: 4px;
+    min-width: 2px;
+  }
+
+  .bar-count {
+    width: 30px;
+    text-align: right;
+    font-weight: 600;
+    flex-shrink: 0;
+  }
+
+  .m0 .bar-fill { background: var(--color-mastery-0); }
+  .m1 .bar-fill { background: var(--color-mastery-1); }
+  .m2 .bar-fill { background: var(--color-primary); }
+  .m3 .bar-fill { background: var(--color-mastery-3); }
+  .m4 .bar-fill { background: var(--color-mastery-4); }
+
+  .cov-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+
+  .cov-item {
+    text-align: center;
+    padding: 12px;
+    background: var(--bg-page);
+    border-radius: $border-radius-sm;
+  }
+
+  .cov-pct {
+    font-size: 1.6em;
+    font-weight: 700;
+    color: var(--color-primary);
+  }
+
+  .cov-label {
+    font-size: .85em;
+    color: var(--text-secondary);
+    margin-top: 2px;
+  }
+}

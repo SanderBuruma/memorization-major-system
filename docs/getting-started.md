@@ -3,6 +3,7 @@
 ## Prerequisites
 
 - **Python 3.8+** (tested on 3.14)
+- **Node.js 22+** (for TypeScript/SCSS build)
 - **pip** for installing dependencies
 - Internet connection for first run (downloads NLTK WordNet data)
 
@@ -11,6 +12,8 @@
 ```bash
 cd ~/Projects/memorization-major-system
 pip install -r requirements.txt
+npm ci
+npm run build          # builds JS + CSS into static/
 python manage.py migrate
 ```
 
@@ -42,10 +45,10 @@ In production, the app runs with gunicorn behind nginx on port 8734. The `deploy
 
 ```bash
 python manage.py test             # run all tests
-python manage.py test test_associations   # wordlist validation only
-python manage.py test test_pool_quiz      # quiz logic only
-python manage.py test test_api            # API + auth integration
-python manage.py test test_persistence    # JS persistence logic (requires Node.js)
+python manage.py test tests.test_associations   # wordlist validation only
+python manage.py test tests.test_pool_quiz      # quiz logic only
+python manage.py test tests.test_api            # API + auth integration
+python manage.py test tests.test_persistence    # JS persistence logic (requires Node.js)
 ```
 
 **test_associations.py** — validates all 100 number-noun pairs for:
@@ -73,7 +76,7 @@ python manage.py test test_persistence    # JS persistence logic (requires Node.
 To regenerate `wordlist.json` from scratch:
 
 ```bash
-python generator.py
+python trainer/generator.py
 ```
 
 This takes 10–30 seconds (WordNet traversal + CMU lookups). The generator:
@@ -84,7 +87,7 @@ This takes 10–30 seconds (WordNet traversal + CMU lookups). The generator:
 
 ## Customizing Words
 
-To override specific associations, edit the `MANUAL_OVERRIDES` dict in `generator.py`:
+To override specific associations, edit the `MANUAL_OVERRIDES` dict in `trainer/generator.py`:
 
 ```python
 MANUAL_OVERRIDES = {
@@ -92,17 +95,17 @@ MANUAL_OVERRIDES = {
 }
 ```
 
-Overrides still must pass validation (encoding, noun, concrete). Run `python generator.py` after editing to regenerate.
+Overrides still must pass validation (encoding, noun, concrete). Run `python trainer/generator.py` after editing to regenerate.
 
-To block inappropriate words, add them to `BLOCKED_WORDS` in `generator.py`.
+To block inappropriate words, add them to `BLOCKED_WORDS` in `trainer/generator.py`.
 
 ## CLI Lookup
 
 To look up candidates for a number or check a word's encoding:
 
 ```bash
-python lookup.py 47       # number -> show candidate words
-python lookup.py roof     # word -> show its number + checks
+python scripts/lookup.py 47       # number -> show candidate words
+python scripts/lookup.py roof     # word -> show its number + checks
 ```
 
 ## Project Structure
@@ -114,21 +117,28 @@ memorization-major-system/
 │   ├── urls.py             # Root URL config (includes trainer.urls)
 │   └── wsgi.py             # WSGI entry point for gunicorn
 ├── trainer/
+│   ├── generator.py        # Word selection + validation logic
+│   ├── validator.py        # CMU phoneme → Major System digit encoding
 │   ├── models.py           # QuizState model (per-user/IP quiz state)
 │   ├── views.py            # API views, auth views, index
 │   └── urls.py             # Route definitions
+├── tests/
+│   ├── test_associations.py  # Wordlist validation (4 tests × 100 subtests)
+│   ├── test_api.py           # API + auth integration tests
+│   ├── test_persistence.py   # JS persistence tests (Node.js harness)
+│   ├── test_pool_quiz.py     # Quiz logic tests
+│   └── test_theme.py         # Theme contrast/luminance tests
+├── scripts/
+│   └── lookup.py           # CLI tool for number/word lookups
+├── src/
+│   ├── ts/                  # TypeScript source (8 modules)
+│   └── scss/                # SCSS source (10 partials)
 ├── templates/
 │   └── login.html          # Login/register page
 ├── static/
-│   └── index.html          # Single-page frontend (score-based quiz)
-├── generator.py            # Word selection + validation logic
-├── validator.py            # CMU phoneme → Major System digit encoding
-├── lookup.py               # CLI tool for number/word lookups
+│   ├── js/app.js           # Built JS bundle (gitignored)
+│   └── css/app.css         # Built CSS (gitignored)
 ├── manage.py               # Django management command entry point
-├── test_associations.py    # Wordlist validation (4 tests × 100 subtests)
-├── test_pool_quiz.py       # Quiz logic tests
-├── test_api.py             # API + auth integration tests
-├── test_persistence.py     # JS persistence tests (Node.js harness)
 ├── wordlist.json           # Generated 00–99 mappings
 ├── requirements.txt        # Python dependencies
 ├── deploy.sh               # VPS deployment (migrate, collectstatic, restart)

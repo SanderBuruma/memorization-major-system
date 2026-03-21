@@ -6,17 +6,13 @@ Run independently:
 """
 
 import json
-import sys
 import unittest
 from pathlib import Path
 
-# Ensure sibling modules are importable
-sys.path.insert(0, str(Path(__file__).parent))
-
 from nltk.corpus import wordnet as wn
 
-from generator import ensure_nltk_data, is_concrete_noun_synset, load_or_generate_wordlist
-from validator import number_to_digits, word_to_digits, word_to_phonemes
+from trainer.generator import ensure_nltk_data, is_concrete_noun_synset, load_or_generate_wordlist
+from trainer.validator import number_to_digits, word_to_digits, word_to_phonemes
 
 
 class TestMajorSystemAssociations(unittest.TestCase):
@@ -25,7 +21,7 @@ class TestMajorSystemAssociations(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         ensure_nltk_data()
-        wordlist_path = Path(__file__).parent / 'wordlist.json'
+        wordlist_path = Path(__file__).resolve().parent.parent / 'wordlist.json'
         if wordlist_path.exists():
             with open(wordlist_path) as f:
                 cls.wordlist = json.load(f)

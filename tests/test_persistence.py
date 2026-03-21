@@ -13,6 +13,7 @@ import os
 import subprocess
 import tempfile
 import unittest
+from pathlib import Path
 
 # JS helper: mock browser globals, extract just the state + persistence
 # functions from the app, and run assertions in Node.
@@ -68,8 +69,9 @@ process.stdout.write(JSON.stringify(results));
 """
 
 
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent
 _JS_FILES = [
-    "static/js/app.js",
+    str(_PROJECT_ROOT / "static" / "js" / "app.js"),
 ]
 
 def _extract_js_block():
@@ -141,12 +143,12 @@ class TestSaveLoadRoundTrip(unittest.TestCase):
         results = _run_js_tests([{
             "name": "score_persists",
             "code": """
-                S.score = {correct: 7, total: 12};
+                appState.score = {correct: 7, total: 12};
                 saveState();
-                S.score = {correct: 0, total: 0};
+                appState.score = {correct: 0, total: 0};
                 loadState();
-                if(S.score.correct !== 7) throw new Error('correct: ' + S.score.correct);
-                if(S.score.total !== 12) throw new Error('total: ' + S.score.total);
+                if(appState.score.correct !== 7) throw new Error('correct: ' + appState.score.correct);
+                if(appState.score.total !== 12) throw new Error('total: ' + appState.score.total);
             """,
         }])
         self.assertTrue(results[0]["pass"], results[0].get("error"))
@@ -221,12 +223,12 @@ class TestCustomWordsPersistence(unittest.TestCase):
         results = _run_js_tests([{
             "name": "customWords_round_trip",
             "code": """
-                S.customWords = {'03': 'myword', '42': 'hammer'};
+                appState.customWords = {'03': 'myword', '42': 'hammer'};
                 saveState();
-                S.customWords = {};
+                appState.customWords = {};
                 loadState();
-                if(S.customWords['03'] !== 'myword') throw new Error('03: ' + S.customWords['03']);
-                if(S.customWords['42'] !== 'hammer') throw new Error('42: ' + S.customWords['42']);
+                if(appState.customWords['03'] !== 'myword') throw new Error('03: ' + appState.customWords['03']);
+                if(appState.customWords['42'] !== 'hammer') throw new Error('42: ' + appState.customWords['42']);
             """,
         }])
         self.assertTrue(results[0]["pass"], results[0].get("error"))
@@ -235,7 +237,7 @@ class TestCustomWordsPersistence(unittest.TestCase):
         results = _run_js_tests([{
             "name": "customWords_in_payload",
             "code": """
-                S.customWords = {'10': 'dice'};
+                appState.customWords = {'10': 'dice'};
                 saveState();
                 var saved = JSON.parse(localStorage.getItem('quizState'));
                 if(!saved.customWords) throw new Error('customWords missing from saved state');
@@ -248,12 +250,12 @@ class TestCustomWordsPersistence(unittest.TestCase):
         results = _run_js_tests([{
             "name": "rebuildWordlist_merges",
             "code": """
-                S.defaultWordlist = {'00': 'sauce', '01': 'seed', '02': 'sun'};
-                S.customWords = {'01': 'custom'};
+                appState.defaultWordlist = {'00': 'sauce', '01': 'seed', '02': 'sun'};
+                appState.customWords = {'01': 'custom'};
                 rebuildWordlist();
-                if(S.wordlist['00'] !== 'sauce') throw new Error('00: ' + S.wordlist['00']);
-                if(S.wordlist['01'] !== 'custom') throw new Error('01: ' + S.wordlist['01']);
-                if(S.wordlist['02'] !== 'sun') throw new Error('02: ' + S.wordlist['02']);
+                if(appState.wordlist['00'] !== 'sauce') throw new Error('00: ' + appState.wordlist['00']);
+                if(appState.wordlist['01'] !== 'custom') throw new Error('01: ' + appState.wordlist['01']);
+                if(appState.wordlist['02'] !== 'sun') throw new Error('02: ' + appState.wordlist['02']);
             """,
         }])
         self.assertTrue(results[0]["pass"], results[0].get("error"))
@@ -268,10 +270,10 @@ class TestLoadStateEdgeCases(unittest.TestCase):
             "name": "no_data",
             "code": """
                 localStorage.clear();
-                S.score = {correct: 5, total: 10};
+                appState.score = {correct: 5, total: 10};
                 loadState();
                 // score should stay as-is when nothing stored
-                if(S.score.correct !== 5) throw new Error('score changed: ' + S.score.correct);
+                if(appState.score.correct !== 5) throw new Error('score changed: ' + appState.score.correct);
             """,
         }])
         self.assertTrue(results[0]["pass"], results[0].get("error"))
@@ -282,9 +284,9 @@ class TestLoadStateEdgeCases(unittest.TestCase):
             "name": "corrupt_json",
             "code": """
                 localStorage.setItem('quizState', '{broken json!!!');
-                S.score = {correct: 3, total: 5};
+                appState.score = {correct: 3, total: 5};
                 loadState();
-                if(S.score.correct !== 3) throw new Error('score changed on corrupt data');
+                if(appState.score.correct !== 3) throw new Error('score changed on corrupt data');
             """,
         }])
         self.assertTrue(results[0]["pass"], results[0].get("error"))
@@ -297,7 +299,7 @@ class TestLoadStateEdgeCases(unittest.TestCase):
                 localStorage.setItem('quizState', JSON.stringify({score: {correct:1, total:2}}));
                 MODES.quiz.scores = {old: 99};
                 loadState();
-                if(S.score.correct !== 1) throw new Error('score not loaded');
+                if(appState.score.correct !== 1) throw new Error('score not loaded');
                 if(Object.keys(MODES.quiz.scores).length !== 0) throw new Error('quizScores not defaulted');
             """,
         }])
@@ -313,10 +315,10 @@ class TestLoadStateEdgeCases(unittest.TestCase):
                     quizPool: ['01','02'],
                     quizMastered: {'03': true}
                 }));
-                S.score = {correct: 0, total: 0};
+                appState.score = {correct: 0, total: 0};
                 loadState();
                 // Old format should be discarded, score stays at default
-                if(S.score.correct !== 0) throw new Error('old data loaded: ' + S.score.correct);
+                if(appState.score.correct !== 0) throw new Error('old data loaded: ' + appState.score.correct);
                 // localStorage should be cleared
                 if(localStorage.getItem('quizState') !== null)
                     throw new Error('old data not removed from localStorage');
@@ -354,13 +356,13 @@ class TestSaveCallSites(unittest.TestCase):
         self.assertIn("saveState()", self._function_body("skipMode"))
 
     def test_checkMode_pushes_to_history(self):
-        self.assertIn("m.history.push(", self._function_body("checkMode"))
+        self.assertIn("mode.history.push(", self._function_body("checkMode"))
 
     def test_skipMode_pushes_to_history(self):
-        self.assertIn("m.history.push(", self._function_body("skipMode"))
+        self.assertIn("mode.history.push(", self._function_body("skipMode"))
 
     def test_checkMode_modifies_scores(self):
-        self.assertIn("m.scores[", self._function_body("checkMode"))
+        self.assertIn("mode.scores[", self._function_body("checkMode"))
 
     def test_init_calls_loadState(self):
         self.assertIn("loadState()", self._function_body("init"))

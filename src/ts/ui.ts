@@ -1,34 +1,34 @@
-import { S, MODES, rebuildWordlist } from './state';
+import { appState, MODES, rebuildWordlist } from './state';
 import { saveState } from './persistence';
 import { startQuiz, startReverse, startMixed, startCon,
          checkQuiz, checkReverse, checkMixed, checkCon } from './quiz';
 import { renderProfile } from './profile';
 
 export function renderGrid(): void {
-  const g = document.getElementById('grid')!;
-  g.innerHTML = '';
+  const grid = document.getElementById('grid')!;
+  grid.innerHTML = '';
   for (let i = 0; i < 100; i++) {
-    const d = String(i).padStart(2, '0');
-    const w = S.wordlist[d] ?? '???';
-    const c = document.createElement('div');
-    c.className = 'grid-cell';
-    c.setAttribute('data-key', d);
-    const isCustom = S.customWords[d] ? '<span class="custom-marker">*</span>' : '';
-    c.innerHTML = `<div class="number">${d}${isCustom}</div>`;
+    const digits = String(i).padStart(2, '0');
+    const word = appState.wordlist[digits] ?? '???';
+    const cell = document.createElement('div');
+    cell.className = 'grid-cell';
+    cell.setAttribute('data-key', digits);
+    const isCustom = appState.customWords[digits] ? '<span class="custom-marker">*</span>' : '';
+    cell.innerHTML = `<div class="number">${digits}${isCustom}</div>`;
     const inp = document.createElement('input');
     inp.className = 'word-input';
-    inp.value = w;
-    inp.setAttribute('data-key', d);
+    inp.value = word;
+    inp.setAttribute('data-key', digits);
     inp.addEventListener('keydown', function (e) {
       if (e.key === 'Enter') this.blur();
     });
     inp.addEventListener('input', function () {
       const key = this.getAttribute('data-key')!;
       const val = this.value.trim();
-      if (val && /^[a-z]/.test(val) && val !== S.defaultWordlist[key]) {
-        S.customWords[key] = val;
-      } else if (!val || val === S.defaultWordlist[key]) {
-        delete S.customWords[key];
+      if (val && /^[a-z]/.test(val) && val !== appState.defaultWordlist[key]) {
+        appState.customWords[key] = val;
+      } else if (!val || val === appState.defaultWordlist[key]) {
+        delete appState.customWords[key];
       }
       rebuildWordlist();
       saveState();
@@ -37,41 +37,41 @@ export function renderGrid(): void {
       const key = this.getAttribute('data-key')!;
       const val = this.value.trim();
       if (!val || !/^[a-z]/.test(val)) {
-        delete S.customWords[key];
+        delete appState.customWords[key];
         rebuildWordlist();
-        this.value = S.wordlist[key] ?? '';
+        this.value = appState.wordlist[key] ?? '';
         saveState();
       }
       const numEl = this.parentNode!.querySelector('.number')!;
       const marker = numEl.querySelector('.custom-marker');
-      if (S.customWords[key] && !marker) {
+      if (appState.customWords[key] && !marker) {
         numEl.insertAdjacentHTML('beforeend', '<span class="custom-marker">*</span>');
-      } else if (!S.customWords[key] && marker) {
+      } else if (!appState.customWords[key] && marker) {
         marker.remove();
       }
     });
-    c.addEventListener('click', function () { this.querySelector<HTMLInputElement>('.word-input')!.focus(); });
-    c.appendChild(inp);
-    g.appendChild(c);
+    cell.addEventListener('click', function () { this.querySelector<HTMLInputElement>('.word-input')!.focus(); });
+    cell.appendChild(inp);
+    grid.appendChild(cell);
   }
 }
 
 export function renderRef(): void {
-  const b = document.getElementById('ref-body')!;
-  b.innerHTML = '';
-  for (let d = 0; d <= 9; d++) {
+  const tableBody = document.getElementById('ref-body')!;
+  tableBody.innerHTML = '';
+  for (let digit = 0; digit <= 9; digit++) {
     const tr = document.createElement('tr');
-    tr.innerHTML = `<td><strong>${d}</strong></td><td>${S.mapping[String(d)]}</td>`;
-    b.appendChild(tr);
+    tr.innerHTML = `<td><strong>${digit}</strong></td><td>${appState.mapping[String(digit)]}</td>`;
+    tableBody.appendChild(tr);
   }
 }
 
 const quizSections = ['quiz', 'reverse', 'mixed', 'consonant'];
 
 export function showSection(name: string): void {
-  document.querySelectorAll('.section').forEach((s) => { s.classList.remove('active'); });
+  document.querySelectorAll('.section').forEach((section) => { section.classList.remove('active'); });
   document.getElementById(`section-${name}`)!.classList.add('active');
-  document.querySelectorAll('.topbar-nav button').forEach((b) => { b.classList.remove('active'); });
+  document.querySelectorAll('.topbar-nav button').forEach((btn) => { btn.classList.remove('active'); });
   const isQuiz = quizSections.indexOf(name) !== -1;
   if (isQuiz) {
     document.querySelector('.topbar-nav [data-section="quiz-nav"]')!.classList.add('active');
@@ -81,7 +81,7 @@ export function showSection(name: string): void {
     if (navBtn) navBtn.classList.add('active');
     document.getElementById('subnav')!.classList.remove('visible');
   }
-  document.querySelectorAll('.subnav button').forEach((b) => { b.classList.remove('active'); });
+  document.querySelectorAll('.subnav button').forEach((btn) => { btn.classList.remove('active'); });
   const sub = document.querySelector(`.subnav [data-section="${name}"]`);
   if (sub) sub.classList.add('active');
   if (name === 'quiz') startQuiz();
@@ -103,9 +103,9 @@ export function showQuizNav(): void {
 }
 
 export function updateScore(): void {
-  const pct = S.score.total > 0 ? Math.round(S.score.correct / S.score.total * 100) : 0;
+  const pct = appState.score.total > 0 ? Math.round(appState.score.correct / appState.score.total * 100) : 0;
   document.getElementById('score-text')!.textContent =
-    `${S.score.correct} / ${S.score.total} (${pct}%)`;
+    `${appState.score.correct} / ${appState.score.total} (${pct}%)`;
 }
 
 /* Keyboard: Enter = submit */
@@ -132,9 +132,9 @@ document.getElementById('translate-input')!.addEventListener('input', function (
     const chunk = raw.substr(i, 2);
     const chip = document.createElement('div');
     if (chunk.length === 2) {
-      const w = S.wordlist[chunk] ?? '???';
+      const word = appState.wordlist[chunk] ?? '???';
       chip.className = 'translate-chip';
-      chip.innerHTML = `<div class="number">${chunk}</div><div class="word">${w}</div>`;
+      chip.innerHTML = `<div class="number">${chunk}</div><div class="word">${word}</div>`;
     } else {
       chip.className = 'translate-chip odd';
       chip.textContent = `${chunk}?`;
@@ -144,7 +144,7 @@ document.getElementById('translate-input')!.addEventListener('input', function (
 });
 
 export function updateMasteryColors(): void {
-  if (!S.keys.length) return;
+  if (!appState.keys.length) return;
   const cells = document.querySelectorAll('.grid-cell');
   cells.forEach((cell) => {
     const key = cell.getAttribute('data-key');
