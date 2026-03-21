@@ -18,6 +18,7 @@ export const appState: AppState = {
   conKeys: [],
   conMap: {},
   dyslexiaFont: false,
+  activityLog: {},
 };
 
 export const MODES: AllModes = {
@@ -97,6 +98,7 @@ export const STATE_FIELDS: StateField[] = [
   { key: 'timedQuiz', get() { return appState.timedQuiz; }, set(v) { appState.timedQuiz = v === true; } },
   { key: 'tutorialSeen', get() { return appState.tutorialSeen; }, set(v) { appState.tutorialSeen = v === true; } },
   { key: 'dyslexiaFont', get() { return appState.dyslexiaFont; }, set(v) { appState.dyslexiaFont = v === true; } },
+  { key: 'activityLog', get() { return appState.activityLog; }, set(v) { appState.activityLog = (v as typeof appState.activityLog) ?? {}; } },
 ];
 for (const name of Object.keys(MODES) as (keyof AllModes)[]) {
   const mode = MODES[name];
@@ -105,6 +107,11 @@ for (const name of Object.keys(MODES) as (keyof AllModes)[]) {
     { key: mode.persistHistory, get() { return mode.history; }, set(v) { mode.history = (v as typeof mode.history) ?? []; } },
     { key: mode.persistGuesses, get() { return mode.recentGuesses; }, set(v) { mode.recentGuesses = (v as typeof mode.recentGuesses) ?? []; } },
   );
+}
+
+export function logActivity(count = 1): void {
+  const today = new Date().toISOString().slice(0, 10);
+  appState.activityLog[today] = (appState.activityLog[today] ?? 0) + count;
 }
 
 export function rebuildWordlist(): void {

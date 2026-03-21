@@ -223,6 +223,37 @@ class TestCustomWords(TestCase):
         self.assertEqual(resp_b.json()['customWords'], {'01': 'beta'})
 
 
+class TestActivityLogAPI(TestCase):
+    def test_activity_log_default_empty(self):
+        resp = self.client.get('/api/state')
+        self.assertEqual(resp.json()['activityLog'], {})
+
+    def test_activity_log_round_trip(self):
+        payload = {'activityLog': {'2026-03-21': 15, '2026-03-20': 3}}
+        self.client.post(
+            '/api/state',
+            data=json.dumps(payload),
+            content_type='application/json',
+        )
+        resp = self.client.get('/api/state')
+        self.assertEqual(resp.json()['activityLog'], {'2026-03-21': 15, '2026-03-20': 3})
+
+    def test_activity_log_merge_with_other_state(self):
+        payload = {
+            'score': {'correct': 5, 'total': 10},
+            'activityLog': {'2026-03-21': 7},
+        }
+        self.client.post(
+            '/api/state',
+            data=json.dumps(payload),
+            content_type='application/json',
+        )
+        resp = self.client.get('/api/state')
+        data = resp.json()
+        self.assertEqual(data['score']['correct'], 5)
+        self.assertEqual(data['activityLog'], {'2026-03-21': 7})
+
+
 class TestAuth(TestCase):
     def _register(self, username='testuser', password='Str0ngP@ss!'):
         return self.client.post('/register/', {

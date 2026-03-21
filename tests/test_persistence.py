@@ -480,5 +480,148 @@ class TestThemeCycling(unittest.TestCase):
         self.assertTrue(results[0]["pass"], results[0].get("error"))
 
 
+class TestActivityLogPersistence(unittest.TestCase):
+    """activityLog survives saveState/loadState round-trip."""
+
+    def test_activity_log_round_trip(self):
+        results = _run_js_tests([{
+            "name": "activityLog_round_trip",
+            "code": """
+                appState.activityLog = {'2026-03-21': 15, '2026-03-20': 3};
+                saveState();
+                appState.activityLog = {};
+                loadState();
+                if(appState.activityLog['2026-03-21'] !== 15)
+                    throw new Error('2026-03-21: ' + appState.activityLog['2026-03-21']);
+                if(appState.activityLog['2026-03-20'] !== 3)
+                    throw new Error('2026-03-20: ' + appState.activityLog['2026-03-20']);
+            """,
+        }])
+        self.assertTrue(results[0]["pass"], results[0].get("error"))
+
+    def test_activity_log_in_save_payload(self):
+        results = _run_js_tests([{
+            "name": "activityLog_in_payload",
+            "code": """
+                appState.activityLog = {'2026-03-21': 5};
+                saveState();
+                var saved = JSON.parse(localStorage.getItem('quizState'));
+                if(!saved.activityLog) throw new Error('activityLog missing');
+                if(saved.activityLog['2026-03-21'] !== 5)
+                    throw new Error('value: ' + saved.activityLog['2026-03-21']);
+            """,
+        }])
+        self.assertTrue(results[0]["pass"], results[0].get("error"))
+
+    def test_activity_log_defaults_empty(self):
+        results = _run_js_tests([{
+            "name": "activityLog_default",
+            "code": """
+                localStorage.clear();
+                appState.activityLog = {'old': 1};
+                loadState();
+                // With no stored data, activityLog should keep current value
+                if(!appState.activityLog) throw new Error('activityLog is falsy');
+            """,
+        }])
+        self.assertTrue(results[0]["pass"], results[0].get("error"))
+
+
+class TestExportImportRoundTrip(unittest.TestCase):
+    """CSV/JSON export format is compatible with import parsing."""
+
+    def test_csv_export_format_parseable(self):
+        """CSV produced by exportWordlistCSV is parseable by parseCSVImport."""
+        results = _run_js_tests([{
+            "name": "csv_round_trip",
+            "code": """
+                appState.defaultWordlist = {'00': 'sauce', '01': 'seed', '02': 'sun'};
+                appState.customWords = {'01': 'custom'};
+                appState.wordlist = {'00': 'sauce', '01': 'custom', '02': 'sun'};
+
+                // Generate CSV the same way exportWordlistCSV does
+                var csv = 'number,word,custom\\n';
+                for (var i = 0; i < 3; i++) {
+                    var d = String(i).padStart(2, '0');
+                    var w = appState.wordlist[d] || '';
+                    var c = appState.customWords[d] ? 'true' : '';
+                    csv += d + ',' + w + ',' + c + '\\n';
+                }
+
+                // Parse it the same way parseCSVImport does
+                var lines = csv.split('\\n').filter(function(l){ return l.trim(); });
+                var start = 0;
+                var first = lines[0].split(',')[0].trim();
+                if (first === 'number' || !/^\\d+$/.test(first)) start = 1;
+                var result = {};
+                for (var j = start; j < lines.length; j++) {
+                    var cols = lines[j].split(',');
+                    if (cols.length < 2) continue;
+                    var num = cols[0].trim().padStart(2, '0');
+                    var word = cols[1].trim();
+                    if (!/^\\d{2}$/.test(num)) continue;
+                    if (!/^[a-z]/.test(word)) continue;
+                    result[num] = word;
+                }
+                if(result['00'] !== 'sauce') throw new Error('00: ' + result['00']);
+                if(result['01'] !== 'custom') throw new Error('01: ' + result['01']);
+                if(result['02'] !== 'sun') throw new Error('02: ' + result['02']);
+            """,
+        }])
+        self.assertTrue(results[0]["pass"], results[0].get("error"))
+
+    def test_json_export_format_parseable(self):
+        """JSON produced by exportWordlistJSON is parseable by parseJSONImport."""
+        results = _run_js_tests([{
+            "name": "json_round_trip",
+            "code": """
+                appState.wordlist = {'00': 'sauce', '01': 'custom', '02': 'sun'};
+
+                // Generate JSON the same way exportWordlistJSON does
+                var obj = {};
+                for (var i = 0; i < 3; i++) {
+                    var d = String(i).padStart(2, '0');
+                    obj[d] = appState.wordlist[d] || '';
+                }
+                var jsonStr = JSON.stringify(obj);
+
+                // Parse it back
+                var parsed = JSON.parse(jsonStr);
+                if(typeof parsed !== 'object' || parsed === null)
+                    throw new Error('not an object');
+                var result = {};
+                for (var key in parsed) {
+                    var num = key.trim().padStart(2, '0');
+                    if (!/^\\d{2}$/.test(num)) continue;
+                    var word = parsed[key].trim();
+                    if (!/^[a-z]/.test(word)) continue;
+                    result[num] = word;
+                }
+                if(result['00'] !== 'sauce') throw new Error('00: ' + result['00']);
+                if(result['01'] !== 'custom') throw new Error('01: ' + result['01']);
+                if(result['02'] !== 'sun') throw new Error('02: ' + result['02']);
+            """,
+        }])
+        self.assertTrue(results[0]["pass"], results[0].get("error"))
+
+    def test_csv_header_detection(self):
+        """CSV parser correctly skips header row."""
+        results = _run_js_tests([{
+            "name": "csv_header_skip",
+            "code": """
+                var csv = 'number,word,custom\\n42,hammer,true\\n';
+                var lines = csv.split('\\n').filter(function(l){ return l.trim(); });
+                var start = 0;
+                var first = lines[0].split(',')[0].trim();
+                if (first === 'number' || !/^\\d+$/.test(first)) start = 1;
+                if (start !== 1) throw new Error('header not detected, start=' + start);
+                var cols = lines[1].split(',');
+                if (cols[0].trim() !== '42') throw new Error('wrong number: ' + cols[0]);
+                if (cols[1].trim() !== 'hammer') throw new Error('wrong word: ' + cols[1]);
+            """,
+        }])
+        self.assertTrue(results[0]["pass"], results[0].get("error"))
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -215,6 +215,20 @@
         <input type="checkbox" id="setting-dyslexia" onchange="toggleDyslexiaFont(this.checked)">
       </label>
       <p class="setting-hint">Switch the entire app to the OpenDyslexic font for improved readability.</p>
+      <div class="export-row">
+        <button class="quiz-btn" onclick="exportWordlistCSV()">Export CSV</button>
+        <button class="quiz-btn" onclick="exportWordlistJSON()">Export JSON</button>
+      </div>
+      <p class="setting-hint">Download your current wordlist (including custom overrides) as CSV or JSON.</p>
+      <h3 class="settings-subheading">Import Wordlist</h3>
+      <div class="import-row">
+        <button class="quiz-btn import-btn" onclick="importCSV()">Import CSV</button>
+        <button class="quiz-btn import-btn" onclick="importJSON()">Import JSON</button>
+        <input type="file" id="import-csv-input" accept=".csv" style="display:none">
+        <input type="file" id="import-json-input" accept=".json" style="display:none">
+      </div>
+      <p class="setting-hint">CSV format: <code>number,word</code> (one per line). JSON format: <code>{"00": "word", ...}</code></p>
+      <div id="import-feedback" class="setting-hint"></div>
       <button class="quiz-btn" style="margin-top:20px;width:100%" onclick="showSection('tutorial')">Replay Tutorial</button>
     </div>
   </div>

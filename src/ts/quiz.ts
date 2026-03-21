@@ -1,4 +1,4 @@
-import { appState, MODES } from './state';
+import { appState, MODES, logActivity } from './state';
 import { QuizItem, QuizMode } from './types';
 import { saveState } from './persistence';
 import { updateAccuracy } from './ui';
@@ -18,6 +18,13 @@ const TIME_LIMITS = [15, 10, 6, 5, 4, 4, 3];
 
 /** Delay (ms) before auto-advancing to the next question after answer feedback. */
 const NEXT_QUESTION_DELAY_MS = 1800;
+
+/** Duration (ms) for question fade-out / fade-in transitions. */
+const FADE_MS = 200;
+
+function getQuizArea<T extends QuizItem>(mode: QuizMode<T>): HTMLElement {
+  return document.getElementById(mode.promptId)!.parentElement!;
+}
 
 function getTimeLimit(score: number): number {
   if (score <= 0) return 0;
@@ -68,6 +75,7 @@ function timeoutMode<T extends QuizItem>(mode: QuizMode<T>): void {
   const key = mode.historyKey(mode.current);
   mode.scores[key] = (mode.scores[key] ?? 0) - 1;
   appState.score.total++;
+  logActivity();
 
   const fb = document.getElementById(mode.feedbackId)!;
   fb.className = 'feedback incorrect';
@@ -93,8 +101,8 @@ function pickNext(scores: Record<string, number>, history: string[], allKeys: st
   return candidates[Math.floor(Math.random() * candidates.length)];
 }
 
-export function startMode<T extends QuizItem>(mode: QuizMode<T>): void {
-  if (mode.timer) clearTimeout(mode.timer);
+/** Populate quiz DOM with new question content (no countdown — caller handles timing). */
+function applyNextQuestion<T extends QuizItem>(mode: QuizMode<T>): void {
   const pick = pickNext(mode.scores, mode.history, mode.allKeys());
   if (!pick) return;
   const item = mode.pickItem(pick);
@@ -108,11 +116,44 @@ export function startMode<T extends QuizItem>(mode: QuizMode<T>): void {
   const fb = document.getElementById(mode.feedbackId)!;
   fb.className = 'feedback empty';
   fb.textContent = '';
-  const score = mode.scores[pick] ?? 0;
-  const limit = appState.timedQuiz ? getTimeLimit(score) : 0;
-  if (limit > 0) startCountdown(mode, limit); else clearCountdown();
+  clearCountdown();
   if (mode.startExtra) mode.startExtra(item, inp);
   inp.focus();
+}
+
+/** Start the timed countdown for the current question if applicable. */
+function maybeStartCountdown<T extends QuizItem>(mode: QuizMode<T>): void {
+  if (!mode.current) return;
+  const key = mode.historyKey(mode.current);
+  const score = mode.scores[key] ?? 0;
+  const limit = appState.timedQuiz ? getTimeLimit(score) : 0;
+  if (limit > 0) startCountdown(mode, limit);
+}
+
+export function startMode<T extends QuizItem>(mode: QuizMode<T>): void {
+  if (mode.timer) clearTimeout(mode.timer);
+  const area = getQuizArea(mode);
+  const isFirstQuestion = mode.current === null;
+
+  if (isFirstQuestion) {
+    // First question: no fade-out, just set content then fade in
+    area.classList.add('quiz-fade-out');
+    applyNextQuestion(mode);
+    // Force reflow so the opacity:0 applies before we remove the class
+    void area.offsetHeight;
+    area.classList.remove('quiz-fade-out');
+    // Start countdown after fade-in completes
+    setTimeout(() => { maybeStartCountdown(mode); }, FADE_MS);
+  } else {
+    // Subsequent questions: fade out, swap content, fade in
+    area.classList.add('quiz-fade-out');
+    setTimeout(() => {
+      applyNextQuestion(mode);
+      area.classList.remove('quiz-fade-out');
+      // Start countdown after fade-in completes
+      setTimeout(() => { maybeStartCountdown(mode); }, FADE_MS);
+    }, FADE_MS);
+  }
 }
 
 export function checkMode<T extends QuizItem>(mode: QuizMode<T>): void {
@@ -128,6 +169,7 @@ export function checkMode<T extends QuizItem>(mode: QuizMode<T>): void {
   const correct = mode.getAnswer(mode.current);
   const key = mode.historyKey(mode.current);
   appState.score.total++;
+  logActivity();
   const fb = document.getElementById(mode.feedbackId)!;
   const isCorrect = answer === correct;
   if (isCorrect) {
@@ -150,12 +192,19 @@ export function checkMode<T extends QuizItem>(mode: QuizMode<T>): void {
 
 export function skipMode<T extends QuizItem>(mode: QuizMode<T>): void {
   clearCountdown();
+  if (mode.timer) clearTimeout(mode.timer);
   if (mode.current) {
     mode.history.push(mode.historyKey(mode.current));
     if (mode.history.length > 10) mode.history.shift();
     saveState();
   }
-  startMode(mode);
+  const area = getQuizArea(mode);
+  area.classList.add('quiz-fade-out');
+  setTimeout(() => {
+    applyNextQuestion(mode);
+    area.classList.remove('quiz-fade-out');
+    setTimeout(() => { maybeStartCountdown(mode); }, FADE_MS);
+  }, FADE_MS);
 }
 
 /* Thin wrappers for HTML onclick handlers */

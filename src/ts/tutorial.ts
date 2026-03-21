@@ -110,14 +110,34 @@ function renderTutorialQuiz(): void {
   }
 }
 
+const TUTORIAL_FADE_MS = 200;
+
 function showTutorialStep(): void {
-  document.querySelectorAll('.tutorial-step').forEach((el) => el.classList.remove('active'));
-  const step = document.querySelector(`.tutorial-step[data-step="${tutorialStep}"]`);
-  if (step) step.classList.add('active');
-  renderTutorialDots();
-  updateTutorialNav();
-  if (tutorialStep === 2) renderTutorialExamples();
-  if (tutorialStep === 3) renderTutorialQuiz();
+  const current = document.querySelector('.tutorial-step.active') as HTMLElement | null;
+  const next = document.querySelector(`.tutorial-step[data-step="${tutorialStep}"]`) as HTMLElement | null;
+
+  const reveal = () => {
+    document.querySelectorAll('.tutorial-step').forEach((el) => {
+      el.classList.remove('active', 'visible');
+    });
+    if (next) {
+      next.classList.add('active');
+      if (tutorialStep === 2) renderTutorialExamples();
+      if (tutorialStep === 3) renderTutorialQuiz();
+      // Force reflow so display:block applies before opacity transition
+      void next.offsetHeight;
+      next.classList.add('visible');
+    }
+    renderTutorialDots();
+    updateTutorialNav();
+  };
+
+  if (current && current !== next) {
+    current.classList.remove('visible');
+    setTimeout(reveal, TUTORIAL_FADE_MS);
+  } else {
+    reveal();
+  }
 }
 
 export function startTutorial(): void {

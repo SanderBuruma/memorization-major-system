@@ -3,7 +3,7 @@ import { getCookie, loadState, applyState, saveState } from './persistence';
 import { toggleTheme, setTheme, updateToggleIcon } from './theme';
 import { checkQuiz, skipQuiz, checkReverse, skipReverse,
          checkMixed, skipMixed, checkCon, skipCon } from './quiz';
-import { renderGrid, renderRef, showSection, showQuizNav, updateMasteryColors, startGridQuiz, checkGridQuiz, toggleTimedQuiz, toggleDyslexiaFont } from './ui';
+import { renderGrid, renderRef, showSection, showQuizNav, updateMasteryColors, startGridQuiz, checkGridQuiz, toggleTimedQuiz, toggleDyslexiaFont, exportWordlistCSV, exportWordlistJSON, importCSV, importJSON } from './ui';
 import { nextTutorialStep, prevTutorialStep } from './tutorial';
 import { ServerState } from './types';
 import { escapeHTML } from './utils';
@@ -91,6 +91,8 @@ Object.assign(window, {
   checkMixed, skipMixed, checkCon, skipCon,
   startGridQuiz, checkGridQuiz, toggleTimedQuiz, toggleDyslexiaFont,
   nextTutorialStep, prevTutorialStep,
+  exportWordlistCSV, exportWordlistJSON,
+  importCSV, importJSON,
 });
 
 /* Boot */

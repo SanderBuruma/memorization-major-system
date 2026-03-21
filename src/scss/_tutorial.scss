@@ -6,11 +6,21 @@
   padding: 20px;
 }
 
+.tutorial-steps {
+  position: relative;
+}
+
 .tutorial-step {
   display: none;
+  opacity: 0;
+  transition: opacity 200ms ease;
 
   &.active {
     display: block;
+  }
+
+  &.visible {
+    opacity: 1;
   }
 
   h2 {

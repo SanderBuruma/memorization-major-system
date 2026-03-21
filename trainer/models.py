@@ -19,6 +19,7 @@ class QuizState(models.Model):
     con_history = models.JSONField(default=list)
     custom_words = models.JSONField(default=dict)
 
+    activity_log = models.JSONField(default=dict)
     tutorial_seen = models.BooleanField(default=False)
     dyslexia_font = models.BooleanField(default=False)
     theme = models.CharField(max_length=20, default='dark')

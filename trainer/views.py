@@ -82,6 +82,7 @@ _FIELD_MAP = {
     'conScores': ('con_scores', dict),
     'conHistory': ('con_history', list),
     'customWords': ('custom_words', dict),
+    'activityLog': ('activity_log', dict),
 }
 _STATE_KEYS = set(_FIELD_MAP) | {'score', 'theme', 'tutorialSeen', 'dyslexiaFont'}
 MAX_STATE_PAYLOAD = 102_400  # 100 KB

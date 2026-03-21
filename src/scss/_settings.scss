@@ -40,6 +40,27 @@
   color: var(--text-muted);
 }
 
+.export-row {
+  display: flex;
+  gap: 12px;
+  margin-top: 20px;
+
+  .quiz-btn { flex: 1; }
+}
+
+.settings-subheading {
+  margin: 24px 0 12px;
+  color: var(--text-primary);
+  font-size: 1.1em;
+}
+
+.import-row {
+  display: flex;
+  gap: 12px;
+
+  .import-btn { flex: 1; }
+}
+
 .settings-btn {
   width: 34px;
   height: 34px;

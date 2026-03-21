@@ -10,6 +10,7 @@ export interface AppState {
   conKeys: string[];
   conMap: Record<string, string>;
   dyslexiaFont: boolean;
+  activityLog: Record<string, number>;
 }
 
 export interface Score { correct: number; total: number; }

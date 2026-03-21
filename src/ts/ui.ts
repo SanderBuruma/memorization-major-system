@@ -1,4 +1,4 @@
-import { appState, MODES, MASTERY_THRESHOLDS, rebuildWordlist } from './state';
+import { appState, MODES, MASTERY_THRESHOLDS, rebuildWordlist, logActivity } from './state';
 import { getCookie, saveState } from './persistence';
 import { startQuiz, startReverse, startMixed, startCon,
          checkQuiz, checkReverse, checkMixed, checkCon } from './quiz';
@@ -364,6 +364,8 @@ export function checkGridQuiz(): void {
     }
   });
 
+  logActivity(cells.length);
+
   document.getElementById('gridquiz-result')!.textContent =
     `${correct}/${cells.length} correct — ${elapsed}`;
 
@@ -388,6 +390,140 @@ export function toggleDyslexiaFont(enabled: boolean): void {
 function renderSettings(): void {
   (document.getElementById('setting-timed') as HTMLInputElement).checked = appState.timedQuiz;
   (document.getElementById('setting-dyslexia') as HTMLInputElement).checked = appState.dyslexiaFont;
+  const fb = document.getElementById('import-feedback');
+  if (fb) fb.textContent = '';
+}
+
+function showImportFeedback(msg: string, isError: boolean): void {
+  const fb = document.getElementById('import-feedback');
+  if (!fb) return;
+  fb.textContent = msg;
+  fb.style.color = isError ? 'var(--color-error, #e74c3c)' : 'var(--color-success, #2ecc71)';
+}
+
+function applyImportedWords(imported: Record<string, string>): void {
+  let total = 0;
+  let custom = 0;
+  for (const [num, word] of Object.entries(imported)) {
+    total++;
+    if (word === appState.defaultWordlist[num]) {
+      delete appState.customWords[num];
+    } else {
+      appState.customWords[num] = word;
+      custom++;
+    }
+  }
+  rebuildWordlist();
+  renderGrid();
+  updateMasteryColors();
+  saveState();
+  showImportFeedback(`Imported ${total} words (${custom} custom)`, false);
+}
+
+function parseCSVImport(text: string): Record<string, string> | string {
+  const lines = text.split(/\r?\n/).filter(l => l.trim());
+  if (!lines.length) return 'CSV file is empty';
+  let start = 0;
+  const first = lines[0].split(',')[0].trim();
+  if (first === 'number' || !/^\d+$/.test(first)) start = 1;
+  const result: Record<string, string> = {};
+  const errors: string[] = [];
+  for (let i = start; i < lines.length; i++) {
+    const cols = lines[i].split(',');
+    if (cols.length < 2) { errors.push(`Line ${i + 1}: not enough columns`); continue; }
+    const num = cols[0].trim().padStart(2, '0');
+    const word = cols[1].trim();
+    if (!/^\d{2}$/.test(num) || parseInt(num) > 99) { errors.push(`Line ${i + 1}: invalid number "${cols[0].trim()}"`); continue; }
+    if (!/^[a-z]/.test(word)) { errors.push(`Line ${i + 1}: word "${word}" must start with a lowercase letter`); continue; }
+    result[num] = word;
+  }
+  if (errors.length && !Object.keys(result).length) return errors.join('; ');
+  if (errors.length) return errors.join('; ');
+  return result;
+}
+
+function parseJSONImport(text: string): Record<string, string> | string {
+  let data: unknown;
+  try { data = JSON.parse(text); } catch { return 'Invalid JSON file'; }
+  if (typeof data !== 'object' || data === null || Array.isArray(data)) return 'JSON must be an object like {"00": "word", ...}';
+  const obj = data as Record<string, unknown>;
+  const result: Record<string, string> = {};
+  const errors: string[] = [];
+  for (const [key, val] of Object.entries(obj)) {
+    const num = key.trim().padStart(2, '0');
+    if (!/^\d{2}$/.test(num) || parseInt(num) > 99) { errors.push(`Invalid number "${key}"`); continue; }
+    if (typeof val !== 'string') { errors.push(`Value for "${key}" is not a string`); continue; }
+    const word = val.trim();
+    if (!/^[a-z]/.test(word)) { errors.push(`Word "${word}" for ${key} must start with a lowercase letter`); continue; }
+    result[num] = word;
+  }
+  if (errors.length && !Object.keys(result).length) return errors.join('; ');
+  if (errors.length) return errors.join('; ');
+  return result;
+}
+
+function handleFileImport(inputId: string, parser: (text: string) => Record<string, string> | string): void {
+  const input = document.getElementById(inputId) as HTMLInputElement;
+  input.value = '';
+  input.onchange = () => {
+    const file = input.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const text = reader.result as string;
+      const result = parser(text);
+      if (typeof result === 'string') {
+        showImportFeedback(result, true);
+      } else if (!Object.keys(result).length) {
+        showImportFeedback('No valid entries found in file', true);
+      } else {
+        applyImportedWords(result);
+      }
+    };
+    reader.onerror = () => showImportFeedback('Failed to read file', true);
+    reader.readAsText(file);
+  };
+  input.click();
+}
+
+export function importCSV(): void {
+  handleFileImport('import-csv-input', parseCSVImport);
+}
+
+export function importJSON(): void {
+  handleFileImport('import-json-input', parseJSONImport);
+}
+
+export function exportWordlistCSV(): void {
+  let csv = 'number,word,custom\n';
+  for (let i = 0; i < 100; i++) {
+    const digits = String(i).padStart(2, '0');
+    const word = appState.wordlist[digits] ?? '';
+    const isCustom = appState.customWords[digits] ? 'true' : '';
+    csv += `${digits},${word},${isCustom}\n`;
+  }
+  downloadFile(csv, 'major-system-wordlist.csv', 'text/csv');
+}
+
+export function exportWordlistJSON(): void {
+  const obj: Record<string, string> = {};
+  for (let i = 0; i < 100; i++) {
+    const digits = String(i).padStart(2, '0');
+    obj[digits] = appState.wordlist[digits] ?? '';
+  }
+  downloadFile(JSON.stringify(obj, null, 2), 'major-system-wordlist.json', 'application/json');
+}
+
+function downloadFile(content: string, filename: string, mime: string): void {
+  const blob = new Blob([content], { type: mime });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 }
 
 /** Update the accuracy footer for a quiz mode based on its last 100 guesses. */
