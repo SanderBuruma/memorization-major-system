@@ -97,18 +97,3 @@
   min-height: 1.4em;
 }
 
-// Score bar
-.score-bar {
-  background: var(--bg-surface);
-  padding: 14px 20px;
-  border-radius: $border-radius-md;
-  text-align: center;
-  margin-top: 20px;
-  border: 1px solid var(--border-color);
-  font-size: 1em;
-  color: var(--text-muted);
-
-  strong {
-    color: var(--color-primary);
-  }
-}

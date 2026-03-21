@@ -90,10 +90,10 @@ class TestFeedbackARIA(unittest.TestCase):
                 self.assertEqual(el["attrs"].get("aria-live"), "polite",
                     f"#{fid} missing aria-live='polite'")
 
-    def test_score_text_has_aria_live(self):
+    def test_score_bar_removed(self):
+        """Global score bar replaced by per-mode quiz-accuracy footers."""
         el = self.p.elements_by_id.get("score-text")
-        self.assertIsNotNone(el, "#score-text not found")
-        self.assertEqual(el["attrs"].get("aria-live"), "polite")
+        self.assertIsNone(el, "#score-text should not exist (replaced by per-mode accuracy)")
 
 
 class TestInputARIA(unittest.TestCase):

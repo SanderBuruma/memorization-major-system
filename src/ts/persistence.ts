@@ -1,5 +1,5 @@
 import { appState, STATE_FIELDS, rebuildWordlist } from './state';
-import { updateMasteryColors, updateScore, renderGrid } from './ui';
+import { updateMasteryColors, renderGrid } from './ui';
 
 export function getCookie(name: string): string {
   const cookieStr = document.cookie ?? '';
@@ -43,6 +43,5 @@ export function applyState(state: Record<string, unknown>): void {
   STATE_FIELDS.forEach((field) => { field.set(state[field.key]); });
   rebuildWordlist();
   saveState();
-  updateScore();
   renderGrid();
 }

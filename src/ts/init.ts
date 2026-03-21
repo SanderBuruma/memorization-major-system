@@ -3,7 +3,7 @@ import { getCookie, loadState, applyState, saveState } from './persistence';
 import { toggleTheme, setTheme, updateToggleIcon } from './theme';
 import { checkQuiz, skipQuiz, checkReverse, skipReverse,
          checkMixed, skipMixed, checkCon, skipCon } from './quiz';
-import { renderGrid, renderRef, showSection, showQuizNav, updateScore, updateMasteryColors, startGridQuiz, checkGridQuiz, toggleTimedQuiz, toggleDyslexiaFont } from './ui';
+import { renderGrid, renderRef, showSection, showQuizNav, updateMasteryColors, startGridQuiz, checkGridQuiz, toggleTimedQuiz, toggleDyslexiaFont } from './ui';
 import { nextTutorialStep, prevTutorialStep } from './tutorial';
 import { ServerState } from './types';
 import { escapeHTML } from './utils';
@@ -48,7 +48,6 @@ async function init(): Promise<void> {
   if (themeSelect) themeSelect.value = document.documentElement.getAttribute('data-theme') ?? 'dark';
   renderGrid();
   renderRef();
-  updateScore();
   updateMasteryColors();
   if (!appState.tutorialSeen) showSection('tutorial');
 

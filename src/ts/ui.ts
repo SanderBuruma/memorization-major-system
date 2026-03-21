@@ -226,11 +226,6 @@ export function showQuizNav(): void {
   }
 }
 
-export function updateScore(): void {
-  const pct = appState.score.total > 0 ? Math.round(appState.score.correct / appState.score.total * 100) : 0;
-  document.getElementById('score-text')!.textContent =
-    `${appState.score.correct} / ${appState.score.total} (${pct}%)`;
-}
 
 /* Keyboard: Enter = submit */
 document.getElementById('quiz-input')!.addEventListener('keydown', (e) => {

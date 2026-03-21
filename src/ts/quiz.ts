@@ -1,7 +1,7 @@
 import { appState, MODES } from './state';
 import { QuizItem, QuizMode } from './types';
 import { saveState } from './persistence';
-import { updateScore, updateAccuracy } from './ui';
+import { updateAccuracy } from './ui';
 
 let countdownInterval: ReturnType<typeof setInterval> | null = null;
 let countdownTimeout: ReturnType<typeof setTimeout> | null = null;
@@ -76,7 +76,6 @@ function timeoutMode<T extends QuizItem>(mode: QuizMode<T>): void {
   recordGuess(mode, false);
   mode.history.push(key);
   if (mode.history.length > 10) mode.history.shift();
-  updateScore();
   updateAccuracy(mode);
   saveState();
   mode.timer = setTimeout(() => { startMode(mode); }, NEXT_QUESTION_DELAY_MS);
@@ -144,7 +143,6 @@ export function checkMode<T extends QuizItem>(mode: QuizMode<T>): void {
   recordGuess(mode, isCorrect);
   mode.history.push(key);
   if (mode.history.length > 10) mode.history.shift();
-  updateScore();
   updateAccuracy(mode);
   saveState();
   mode.timer = setTimeout(() => { startMode(mode); }, NEXT_QUESTION_DELAY_MS);
