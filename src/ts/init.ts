@@ -3,7 +3,7 @@ import { getCookie, loadState, applyState, saveState } from './persistence';
 import { toggleTheme, updateToggleIcon } from './theme';
 import { startQuiz, checkQuiz, skipQuiz, startReverse, checkReverse, skipReverse,
          startMixed, checkMixed, skipMixed, startCon, checkCon, skipCon } from './quiz';
-import { renderGrid, renderRef, showSection, showQuizNav, updateScore, updateMasteryColors } from './ui';
+import { renderGrid, renderRef, showSection, showQuizNav, updateScore, updateMasteryColors, startGridQuiz, checkGridQuiz } from './ui';
 import { renderProfile } from './profile';
 import { ServerState } from './types';
 
@@ -82,6 +82,7 @@ Object.assign(window, {
   showSection, showQuizNav, toggleTheme,
   checkQuiz, skipQuiz, checkReverse, skipReverse,
   checkMixed, skipMixed, checkCon, skipCon,
+  startGridQuiz, checkGridQuiz,
 });
 
 /* Boot */

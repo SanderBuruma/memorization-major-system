@@ -28,6 +28,7 @@
     <button data-section="reverse" onclick="showSection('reverse')">Word &rarr; #</button>
     <button data-section="mixed" onclick="showSection('mixed')">Mixed</button>
     <button data-section="consonant" onclick="showSection('consonant')">Sound &rarr; #</button>
+    <button data-section="gridquiz" onclick="showSection('gridquiz')">Grid Quiz</button>
   </div>
 
   <!-- GRID ----------------------------------------------------------- -->
@@ -89,6 +90,17 @@
       </div>
       <div class="feedback empty" id="con-feedback"></div>
     </div>
+  </div>
+
+  <!-- GRID QUIZ ------------------------------------------------------ -->
+  <div id="section-gridquiz" class="section">
+    <div class="gridquiz-controls">
+      <button class="quiz-btn" id="gridquiz-check" onclick="checkGridQuiz()">Check All</button>
+      <button class="quiz-btn skip" id="gridquiz-reset" onclick="startGridQuiz()">Reset</button>
+      <span id="gridquiz-timer" class="gridquiz-timer"></span>
+    </div>
+    <div id="gridquiz-grid" class="grid"></div>
+    <div id="gridquiz-result" class="gridquiz-result"></div>
   </div>
 
   <!-- REFERENCE ------------------------------------------------------ -->

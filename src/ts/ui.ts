@@ -66,9 +66,10 @@ export function renderRef(): void {
   }
 }
 
-const quizSections = ['quiz', 'reverse', 'mixed', 'consonant'];
+const quizSections = ['quiz', 'reverse', 'mixed', 'consonant', 'gridquiz'];
 
 export function showSection(name: string): void {
+  if (gqTimerInterval) { clearInterval(gqTimerInterval); gqTimerInterval = null; }
   document.querySelectorAll('.section').forEach((section) => { section.classList.remove('active'); });
   document.getElementById(`section-${name}`)!.classList.add('active');
   document.querySelectorAll('.topbar-nav button').forEach((btn) => { btn.classList.remove('active'); });
@@ -88,6 +89,7 @@ export function showSection(name: string): void {
   if (name === 'reverse') startReverse();
   if (name === 'mixed') startMixed();
   if (name === 'consonant') startCon();
+  if (name === 'gridquiz') startGridQuiz();
   if (name === 'profile') renderProfile();
 }
 
@@ -143,9 +145,100 @@ document.getElementById('translate-input')!.addEventListener('input', function (
   }
 });
 
+/* Grid Quiz */
+let gqTimerInterval: ReturnType<typeof setInterval> | null = null;
+let gqStartTime = 0;
+
+function formatTime(ms: number): string {
+  const s = Math.floor(ms / 1000);
+  return `${Math.floor(s / 60)}m ${s % 60}s`;
+}
+
+export function startGridQuiz(): void {
+  if (gqTimerInterval) clearInterval(gqTimerInterval);
+  const grid = document.getElementById('gridquiz-grid')!;
+  const result = document.getElementById('gridquiz-result')!;
+  const timerEl = document.getElementById('gridquiz-timer')!;
+  result.textContent = '';
+
+  // Fisher-Yates shuffle
+  const shuffled = [...appState.keys];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+
+  grid.innerHTML = '';
+  for (const digits of shuffled) {
+    const cell = document.createElement('div');
+    cell.className = 'grid-cell';
+    cell.setAttribute('data-key', digits);
+    cell.innerHTML = `<div class="number">${digits}</div>`;
+    const inp = document.createElement('input');
+    inp.className = 'word-input';
+    inp.setAttribute('data-key', digits);
+    inp.autocomplete = 'off';
+    inp.spellcheck = false;
+    cell.appendChild(inp);
+    cell.addEventListener('click', function () { this.querySelector<HTMLInputElement>('.word-input')!.focus(); });
+    grid.appendChild(cell);
+  }
+
+  gqStartTime = performance.now();
+  timerEl.textContent = '0m 0s';
+  gqTimerInterval = setInterval(() => {
+    timerEl.textContent = formatTime(performance.now() - gqStartTime);
+  }, 1000);
+}
+
+export function checkGridQuiz(): void {
+  if (gqTimerInterval) { clearInterval(gqTimerInterval); gqTimerInterval = null; }
+  const cells = document.querySelectorAll('#gridquiz-grid .grid-cell');
+  if (!cells.length) return;
+  const elapsed = formatTime(performance.now() - gqStartTime);
+  document.getElementById('gridquiz-timer')!.textContent = elapsed;
+
+  let correct = 0;
+  cells.forEach((cell) => {
+    const key = cell.getAttribute('data-key')!;
+    const inp = cell.querySelector<HTMLInputElement>('.word-input')!;
+    const val = inp.value.trim().toLowerCase();
+    const expected = (appState.wordlist[key] ?? '').toLowerCase();
+    cell.classList.remove('gq-correct', 'gq-wrong', 'gq-skipped');
+    const existing = cell.querySelector('.gq-answer');
+    if (existing) existing.remove();
+
+    if (!val) {
+      cell.classList.add('gq-skipped');
+      const ans = document.createElement('div');
+      ans.className = 'gq-answer';
+      ans.textContent = expected;
+      cell.appendChild(ans);
+    } else if (val === expected) {
+      cell.classList.add('gq-correct');
+      correct++;
+    } else {
+      cell.classList.add('gq-wrong');
+      const ans = document.createElement('div');
+      ans.className = 'gq-answer';
+      ans.textContent = expected;
+      cell.appendChild(ans);
+    }
+  });
+
+  document.getElementById('gridquiz-result')!.textContent =
+    `${correct}/${cells.length} correct — ${elapsed}`;
+
+  cells.forEach((cell) => {
+    const inp = cell.querySelector<HTMLInputElement>('.word-input');
+    if (inp) inp.disabled = true;
+  });
+  document.getElementById('gridquiz-check')!.setAttribute('disabled', '');
+}
+
 export function updateMasteryColors(): void {
   if (!appState.keys.length) return;
-  const cells = document.querySelectorAll('.grid-cell');
+  const cells = document.querySelectorAll('#grid .grid-cell');
   cells.forEach((cell) => {
     const key = cell.getAttribute('data-key');
     if (!key) return;

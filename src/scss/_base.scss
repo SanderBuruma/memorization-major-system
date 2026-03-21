@@ -18,9 +18,19 @@ body {
 }
 
 .section {
-  display: none;
+  opacity: 0;
+  max-height: 0;
+  overflow: hidden;
+  pointer-events: none;
+  visibility: hidden;
+  transition: opacity 150ms ease, visibility 0s 150ms;
 
   &.active {
-    display: block;
+    opacity: 1;
+    max-height: none;
+    overflow: visible;
+    pointer-events: auto;
+    visibility: visible;
+    transition: opacity 150ms ease, visibility 0s 0s;
   }
 }
