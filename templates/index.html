@@ -17,6 +17,7 @@
     <button class="arrow-pill arrow-pill-center" data-section="quiz-nav" onclick="showQuizNav()">Quiz</button>
     <button class="arrow-pill arrow-pill-center" data-section="ref" onclick="showSection('ref')">Reference</button>
     <button class="arrow-pill arrow-pill-center" data-section="translate" onclick="showSection('translate')">Translate</button>
+    <button class="arrow-pill arrow-pill-center" data-section="wiki" onclick="showSection('wiki')">Wiki</button>
   </div>
   <div class="topbar-right">
     <span id="auth-status"></span>
@@ -130,6 +131,11 @@
              autocomplete="off" spellcheck="false" style="width:100%;max-width:400px;font-size:1.2em" aria-label="Type words to encode as numbers">
       <div id="reverse-translate-output" class="translate-output"></div>
     </div>
+  </div>
+
+  <!-- WIKI ----------------------------------------------------------- -->
+  <div id="section-wiki" class="section">
+    <div class="wiki-area" id="wiki-content"></div>
   </div>
 
   <!-- PROFILE -------------------------------------------------------- -->

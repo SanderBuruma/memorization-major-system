@@ -4,6 +4,7 @@ import { startQuiz, startReverse, startMixed, startCon,
          checkQuiz, checkReverse, checkMixed, checkCon } from './quiz';
 import { renderProfile } from './profile';
 import { startTutorial } from './tutorial';
+import { renderWiki } from './wiki';
 import { escapeHTML } from './utils';
 import { QuizItem, QuizMode } from './types';
 import { MATH_CONSTANTS } from './constants';
@@ -210,7 +211,7 @@ export function showSection(name: string): void {
   if (sub) sub.classList.add('active');
   const sectionStarters: Record<string, () => void> = {
     quiz: startQuiz, reverse: startReverse, mixed: startMixed,
-    consonant: startCon, gridquiz: startGridQuiz, profile: renderProfile, settings: renderSettings,
+    consonant: startCon, gridquiz: startGridQuiz, wiki: renderWiki, profile: renderProfile, settings: renderSettings,
     tutorial: startTutorial,
   };
   sectionStarters[name]?.();
