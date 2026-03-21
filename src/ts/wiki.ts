@@ -50,6 +50,21 @@ function inlineExample(key: string): string {
   return `the word <strong>"${word}"</strong> encodes <strong>${escapeHTML(key)}</strong> because ${s0} = ${escapeHTML(d0)} and ${s1} = ${escapeHTML(d1)}`;
 }
 
+/** Curated single-digit nouns: vivid, concrete, easy to visualize. */
+const SINGLE_DIGIT_WORDS: Record<string, string> = {
+  '0': 'sea', '1': 'tie', '2': 'knee', '3': 'maw', '4': 'aura',
+  '5': 'oil', '6': 'shoe', '7': 'cow', '8': 'fur', '9': 'pie',
+};
+
+/** Show one curated noun per digit (0–9) with its consonant sounds. */
+function singleDigitExamples(): string {
+  return '<ul>' + Array.from({ length: 10 }, (_, d) => {
+    const word = escapeHTML(SINGLE_DIGIT_WORDS[String(d)] ?? '???');
+    const sounds = escapeHTML(appState.mapping[String(d)] ?? '');
+    return `<li><strong>${d}</strong> → ${sounds} — "${word}"</li>`;
+  }).join('') + '</ul>';
+}
+
 /** Build the list of math constant symbols from MATH_CONSTANTS. */
 function constantSymbols(): string {
   return MATH_CONSTANTS.map(c => `<strong>${escapeHTML(c.symbol)}</strong>`).join(', ');
@@ -77,7 +92,9 @@ ${mappingTable()}
       {
         title: 'Your First Words',
         content: () => `
-<p>Each two-digit number (00–99) gets its own word. Here are some examples from your current wordlist:</p>
+<p>Each single digit maps to a consonant sound. Here is one word per digit from your wordlist:</p>
+${singleDigitExamples()}
+<p>Two-digit numbers combine two consonants into one word:</p>
 ${wordExamples(['00', '14', '27', '53', '91'])}
 <p>The app provides a default word for every pair, but you can <strong>replace any word</strong> with one that is more memorable to you. Concrete, vivid nouns work best — something you can picture clearly.</p>
 <p>Tip: start by learning the digit-consonant mapping cold, then the words will follow naturally.</p>`,
