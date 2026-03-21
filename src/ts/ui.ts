@@ -1,8 +1,11 @@
-import { appState, MODES, rebuildWordlist } from './state';
+import { appState, MODES, MASTERY_THRESHOLDS, rebuildWordlist } from './state';
 import { getCookie, saveState } from './persistence';
 import { startQuiz, startReverse, startMixed, startCon,
          checkQuiz, checkReverse, checkMixed, checkCon } from './quiz';
 import { renderProfile } from './profile';
+import { startTutorial } from './tutorial';
+import { escapeHTML } from './utils';
+import { QuizItem, QuizMode } from './types';
 
 /* --- Autocomplete state --- */
 const candidateCache: Record<string, string[]> = {};
@@ -79,6 +82,79 @@ function filterDropdown(inp: HTMLInputElement, all: string[]): void {
   showDropdown(inp, filtered);
 }
 
+/** Update the custom-word asterisk marker next to the digit label. */
+function updateCustomMarker(inp: HTMLInputElement, key: string): void {
+  const numEl = inp.parentNode!.querySelector('.number')!;
+  const marker = numEl.querySelector('.custom-marker');
+  if (appState.customWords[key] && !marker) {
+    numEl.insertAdjacentHTML('beforeend', '<span class="custom-marker">*</span>');
+  } else if (!appState.customWords[key] && marker) {
+    marker.remove();
+  }
+}
+
+/** Attach focus, keydown, input, and blur listeners to a grid cell input. */
+function setupGridCellInput(inp: HTMLInputElement): void {
+  let currentCandidates: string[] = [];
+
+  inp.addEventListener('focus', async function () {
+    const key = this.getAttribute('data-key')!;
+    currentCandidates = await fetchCandidates(key);
+    filterDropdown(this, currentCandidates);
+  });
+
+  inp.addEventListener('keydown', function (e) {
+    if (activeDropdown && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) {
+      e.preventDefault();
+      const opts = activeDropdown.querySelectorAll('.ac-option');
+      if (e.key === 'ArrowDown') highlightIdx = Math.min(highlightIdx + 1, opts.length - 1);
+      else highlightIdx = Math.max(highlightIdx - 1, -1);
+      updateHighlight();
+      return;
+    }
+    if (e.key === 'Enter') {
+      if (activeDropdown && highlightIdx >= 0) {
+        e.preventDefault();
+        const opts = activeDropdown.querySelectorAll('.ac-option');
+        if (opts[highlightIdx]) selectCandidate(this, opts[highlightIdx].textContent!);
+        return;
+      }
+      this.blur();
+      return;
+    }
+    if (e.key === 'Escape') {
+      closeDropdown();
+      return;
+    }
+  });
+
+  inp.addEventListener('input', function () {
+    const key = this.getAttribute('data-key')!;
+    const val = this.value.trim();
+    if (val && /^[a-z]/.test(val) && val !== appState.defaultWordlist[key]) {
+      appState.customWords[key] = val;
+    } else if (!val || val === appState.defaultWordlist[key]) {
+      delete appState.customWords[key];
+    }
+    rebuildWordlist();
+    saveState();
+    filterDropdown(this, currentCandidates);
+  });
+
+  inp.addEventListener('blur', function () {
+    closeDropdown();
+    const key = this.getAttribute('data-key')!;
+    const val = this.value.trim();
+    if (!val || !/^[a-z]/.test(val)) {
+      delete appState.customWords[key];
+      rebuildWordlist();
+      this.value = appState.wordlist[key] ?? '';
+      saveState();
+    }
+    updateCustomMarker(this, key);
+  });
+}
+
 export function renderGrid(): void {
   const grid = document.getElementById('grid')!;
   grid.innerHTML = '';
@@ -95,72 +171,7 @@ export function renderGrid(): void {
     inp.value = word;
     inp.setAttribute('data-key', digits);
     inp.autocomplete = 'off';
-
-    let currentCandidates: string[] = [];
-
-    inp.addEventListener('focus', async function () {
-      const key = this.getAttribute('data-key')!;
-      currentCandidates = await fetchCandidates(key);
-      filterDropdown(this, currentCandidates);
-    });
-
-    inp.addEventListener('keydown', function (e) {
-      if (activeDropdown && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) {
-        e.preventDefault();
-        const opts = activeDropdown.querySelectorAll('.ac-option');
-        if (e.key === 'ArrowDown') highlightIdx = Math.min(highlightIdx + 1, opts.length - 1);
-        else highlightIdx = Math.max(highlightIdx - 1, -1);
-        updateHighlight();
-        return;
-      }
-      if (e.key === 'Enter') {
-        if (activeDropdown && highlightIdx >= 0) {
-          e.preventDefault();
-          const opts = activeDropdown.querySelectorAll('.ac-option');
-          if (opts[highlightIdx]) selectCandidate(this, opts[highlightIdx].textContent!);
-          return;
-        }
-        this.blur();
-        return;
-      }
-      if (e.key === 'Escape') {
-        closeDropdown();
-        return;
-      }
-    });
-
-    inp.addEventListener('input', function () {
-      const key = this.getAttribute('data-key')!;
-      const val = this.value.trim();
-      if (val && /^[a-z]/.test(val) && val !== appState.defaultWordlist[key]) {
-        appState.customWords[key] = val;
-      } else if (!val || val === appState.defaultWordlist[key]) {
-        delete appState.customWords[key];
-      }
-      rebuildWordlist();
-      saveState();
-      filterDropdown(this, currentCandidates);
-    });
-
-    inp.addEventListener('blur', function () {
-      closeDropdown();
-      const key = this.getAttribute('data-key')!;
-      const val = this.value.trim();
-      if (!val || !/^[a-z]/.test(val)) {
-        delete appState.customWords[key];
-        rebuildWordlist();
-        this.value = appState.wordlist[key] ?? '';
-        saveState();
-      }
-      const numEl = this.parentNode!.querySelector('.number')!;
-      const marker = numEl.querySelector('.custom-marker');
-      if (appState.customWords[key] && !marker) {
-        numEl.insertAdjacentHTML('beforeend', '<span class="custom-marker">*</span>');
-      } else if (!appState.customWords[key] && marker) {
-        marker.remove();
-      }
-    });
-
+    setupGridCellInput(inp);
     cell.addEventListener('click', function () { this.querySelector<HTMLInputElement>('.word-input')!.focus(); });
     cell.appendChild(inp);
     grid.appendChild(cell);
@@ -172,7 +183,7 @@ export function renderRef(): void {
   tableBody.innerHTML = '';
   for (let digit = 0; digit <= 9; digit++) {
     const tr = document.createElement('tr');
-    tr.innerHTML = `<td><strong>${digit}</strong></td><td>${appState.mapping[String(digit)]}</td>`;
+    tr.innerHTML = `<td><strong>${digit}</strong></td><td>${escapeHTML(appState.mapping[String(digit)] ?? '')}</td>`;
     tableBody.appendChild(tr);
   }
 }
@@ -247,7 +258,7 @@ document.getElementById('translate-input')!.addEventListener('input', function (
     if (chunk.length === 2) {
       const word = appState.wordlist[chunk] ?? '???';
       chip.className = 'translate-chip';
-      chip.innerHTML = `<div class="number">${chunk}</div><div class="word">${word}</div>`;
+      chip.innerHTML = `<div class="number">${escapeHTML(chunk)}</div><div class="word">${escapeHTML(word)}</div>`;
     } else {
       chip.className = 'translate-chip odd';
       chip.textContent = `${chunk}?`;
@@ -276,7 +287,7 @@ document.getElementById('reverse-translate-input')!.addEventListener('input', fu
       for (const item of items) {
         const chip = document.createElement('div');
         chip.className = item.digits ? 'translate-chip' : 'translate-chip no-encode';
-        chip.innerHTML = `<div class="word">${item.word}</div><div class="number">${item.digits ?? '?'}</div>`;
+        chip.innerHTML = `<div class="word">${escapeHTML(item.word)}</div><div class="number">${escapeHTML(item.digits ?? '?')}</div>`;
         out.appendChild(chip);
       }
     } catch {}
@@ -384,100 +395,23 @@ function renderSettings(): void {
   (document.getElementById('setting-dyslexia') as HTMLInputElement).checked = appState.dyslexiaFont;
 }
 
-/* Tutorial */
-const TUTORIAL_TOTAL = 5;
-let tutorialStep = 0;
-
-const TUTORIAL_QUESTIONS = [
-  { word: 'nail', answer: '25' },
-  { word: 'bear', answer: '94' },
-  { word: 'comb', answer: '73' },
-];
-
-function renderTutorialDots(): void {
-  const dots = document.getElementById('tutorial-dots')!;
-  dots.innerHTML = '';
-  for (let i = 0; i < TUTORIAL_TOTAL; i++) {
-    const dot = document.createElement('span');
-    dot.className = 'tutorial-dot' + (i === tutorialStep ? ' active' : '');
-    dots.appendChild(dot);
+/** Update the accuracy footer for a quiz mode based on its last 100 guesses. */
+export function updateAccuracy<T extends QuizItem>(mode: QuizMode<T>): void {
+  const fb = document.getElementById(mode.feedbackId);
+  if (!fb) return;
+  const area = fb.closest('.quiz-area');
+  if (!area) return;
+  let el = area.querySelector('.quiz-accuracy') as HTMLElement | null;
+  if (!el) {
+    el = document.createElement('div');
+    el.className = 'quiz-accuracy';
+    area.appendChild(el);
   }
-}
-
-function updateTutorialNav(): void {
-  const prev = document.getElementById('tutorial-prev')!;
-  const next = document.getElementById('tutorial-next')!;
-  prev.style.visibility = tutorialStep === 0 ? 'hidden' : 'visible';
-  if (tutorialStep === TUTORIAL_TOTAL - 1) {
-    next.textContent = 'Start practicing';
-  } else {
-    next.textContent = 'Next';
-  }
-}
-
-function showTutorialStep(): void {
-  document.querySelectorAll('.tutorial-step').forEach((el) => el.classList.remove('active'));
-  const step = document.querySelector(`.tutorial-step[data-step="${tutorialStep}"]`);
-  if (step) step.classList.add('active');
-  renderTutorialDots();
-  updateTutorialNav();
-  if (tutorialStep === 3) renderTutorialQuiz();
-}
-
-function renderTutorialQuiz(): void {
-  const container = document.getElementById('tutorial-quiz')!;
-  container.innerHTML = '';
-  for (const q of TUTORIAL_QUESTIONS) {
-    const row = document.createElement('div');
-    row.className = 'tutorial-quiz-item';
-    row.innerHTML = `<span class="tutorial-quiz-word">${q.word}</span>`;
-    const inp = document.createElement('input');
-    inp.maxLength = 2;
-    inp.placeholder = '??';
-    const result = document.createElement('span');
-    result.className = 'tutorial-quiz-result';
-    inp.addEventListener('input', () => {
-      const val = inp.value.trim();
-      if (val.length === 2) {
-        if (val === q.answer) {
-          result.textContent = 'Correct!';
-          result.className = 'tutorial-quiz-result correct';
-        } else {
-          result.textContent = `Not quite — it's ${q.answer}`;
-          result.className = 'tutorial-quiz-result incorrect';
-        }
-      } else {
-        result.textContent = '';
-        result.className = 'tutorial-quiz-result';
-      }
-    });
-    row.appendChild(inp);
-    row.appendChild(result);
-    container.appendChild(row);
-  }
-}
-
-export function startTutorial(): void {
-  tutorialStep = 0;
-  showTutorialStep();
-}
-
-export function nextTutorialStep(): void {
-  if (tutorialStep < TUTORIAL_TOTAL - 1) {
-    tutorialStep++;
-    showTutorialStep();
-  } else {
-    appState.tutorialSeen = true;
-    saveState();
-    showSection('grid');
-  }
-}
-
-export function prevTutorialStep(): void {
-  if (tutorialStep > 0) {
-    tutorialStep--;
-    showTutorialStep();
-  }
+  const guesses = mode.recentGuesses;
+  if (guesses.length === 0) { el.textContent = ''; return; }
+  const correct = guesses.filter(Boolean).length;
+  const pct = Math.round(correct / guesses.length * 100);
+  el.textContent = `Last ${guesses.length}: ${correct}/${guesses.length} (${pct}%)`;
 }
 
 export function updateMasteryColors(): void {
@@ -487,11 +421,12 @@ export function updateMasteryColors(): void {
     const key = cell.getAttribute('data-key');
     if (!key) return;
     const total = (MODES.quiz.scores[key] ?? 0) + (MODES.reverse.scores[key] ?? 0) + (MODES.mixed.scores[key] ?? 0);
+    const [t0, t1, t2, t3] = MASTERY_THRESHOLDS;
     let cls: string;
-    if (total <= -3) cls = 'mastery-0';
-    else if (total < 0) cls = 'mastery-1';
-    else if (total <= 3) cls = 'mastery-2';
-    else if (total <= 8) cls = 'mastery-3';
+    if (total <= t0) cls = 'mastery-0';
+    else if (total < t1) cls = 'mastery-1';
+    else if (total <= t2) cls = 'mastery-2';
+    else if (total <= t3) cls = 'mastery-3';
     else cls = 'mastery-4';
     cell.className = cell.className.replace(/mastery-\d/g, '').trim() + ' ' + cls;
   });

@@ -23,8 +23,7 @@ Word selection, validation, and persistence. Main workhorse module.
 | Line | Symbol | Description |
 |------|--------|-------------|
 | 20 | `WORDLIST_PATH` | Path to `wordlist.json` (sibling to this file) |
-| 24 | `MANUAL_OVERRIDES` | Dict for human-curated overrides |
-| 27–31 | `BLOCKED_WORDS` | Set of excluded words (slurs, abbreviations) |
+| 23 | `BLOCKED_WORDS` | Set of excluded words (slurs, abbreviations) |
 | 34–43 | `ensure_nltk_data()` | Download WordNet + OMW data if missing |
 | 46–59 | `is_concrete_noun_synset(synset)` | BFS: does synset trace to `physical_entity.n.01`? |
 | 62–83 | `get_concrete_nouns()` | Extract ~27k filtered concrete nouns from WordNet |
@@ -70,7 +69,7 @@ WSGI entry point for gunicorn.
 | 7 | `ip_address` | GenericIPAddressField (anonymous tracking) |
 | 9–10 | `score_correct`, `score_total` | Overall score counters |
 | 12–19 | Quiz JSONFields | `quiz_scores/history`, `reverse_scores/history`, `mixed_scores/history`, `con_scores/history` |
-| 21 | `theme` | dark/light preference |
+| 21 | `theme` | dark/light/oled/high-contrast preference |
 | 22 | `updated_at` | Auto-updated timestamp |
 
 ## trainer/views.py (160 lines)
@@ -82,7 +81,7 @@ Django views for API endpoints and auth.
 | 16–17 | `_wordlist`, `_mapping` | Module-level globals, populated at import |
 | 20–24 | `get_client_ip(request)` | Extract client IP (X-Forwarded-For aware) |
 | 27–33 | `get_quiz_state(request)` | Get or create QuizState for user or IP |
-| 36–39 | `index_view(request)` | Serve `static/index.html` with CSRF cookie |
+| 36–39 | `index_view(request)` | Render `templates/index.html` via Django template rendering with CSRF cookie |
 | 42–44 | `wordlist_view(request)` | Return wordlist JSON |
 | 47–49 | `mapping_view(request)` | Return digit-to-sounds JSON |
 | 58–114 | `state_view(request)` | GET: return quiz state; POST: update quiz state |
@@ -151,11 +150,11 @@ Django integration tests for API endpoints and auth flows.
 
 ## test_persistence.py (423 lines)
 
-Tests for JS localStorage persistence logic. Extracts JS from `index.html`, runs it in Node.js with a localStorage mock, and verifies saveState/loadState round-trips.
+Tests for JS localStorage persistence logic. Runs the esbuild bundle in Node.js with a localStorage mock (via shared `tests/js_harness.py`) and verifies saveState/loadState round-trips.
 
-## static/index.html (873 lines)
+## templates/index.html
 
-Self-contained SPA: inline CSS + inline JavaScript (no build step). Offline-first with localStorage caching and background server sync.
+Django-served SPA. External JS bundle (`static/js/app.js`) and CSS bundle (`static/css/app.css`) compiled from `src/ts/` and `src/scss/` via esbuild and sass. Offline-first with localStorage caching and background server sync.
 
 ### CSS
 

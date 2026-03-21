@@ -84,6 +84,7 @@ _FIELD_MAP = {
     'customWords': ('custom_words', dict),
 }
 _STATE_KEYS = set(_FIELD_MAP) | {'score', 'theme', 'tutorialSeen', 'dyslexiaFont'}
+MAX_STATE_PAYLOAD = 102_400  # 100 KB
 
 
 def state_view(request):
@@ -102,6 +103,9 @@ def state_view(request):
         return JsonResponse(response)
 
     if request.method == 'POST':
+        if len(request.body) > MAX_STATE_PAYLOAD:
+            return JsonResponse({'error': 'Payload too large'}, status=413)
+
         try:
             data = json.loads(request.body)
         except (json.JSONDecodeError, ValueError):

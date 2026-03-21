@@ -1,5 +1,11 @@
 import { AppState, AllModes, WordQuizItem, ConsonantQuizItem, StateField } from './types';
 
+/** Combined-score boundaries for mastery tiers 0-4 (struggling..mastered). */
+export const MASTERY_THRESHOLDS = [-3, 0, 3, 8] as const;
+
+/** Display names for ambiguous consonant letters in the consonant quiz prompt. */
+const CON_DISPLAY_NAMES: Record<string, string> = { C: 'C (hard)', G: 'G (hard)' };
+
 export const appState: AppState = {
   wordlist: {},
   defaultWordlist: {},
@@ -18,8 +24,8 @@ export const MODES: AllModes = {
   quiz: {
     promptId: 'quiz-prompt', inputId: 'quiz-input',
     feedbackId: 'quiz-feedback', submitId: 'quiz-submit',
-    scores: {}, history: [], current: null, timer: null,
-    persistScores: 'quizScores', persistHistory: 'quizHistory',
+    scores: {}, history: [], recentGuesses: [], current: null, timer: null,
+    persistScores: 'quizScores', persistHistory: 'quizHistory', persistGuesses: 'quizGuesses',
     allKeys() { return appState.keys; },
     pickItem(k) { return { digits: k, word: appState.wordlist[k] }; },
     getPrompt(item) { return item.digits; },
@@ -32,8 +38,8 @@ export const MODES: AllModes = {
   reverse: {
     promptId: 'rev-prompt', inputId: 'rev-input',
     feedbackId: 'rev-feedback', submitId: 'rev-submit',
-    scores: {}, history: [], current: null, timer: null,
-    persistScores: 'reverseScores', persistHistory: 'reverseHistory',
+    scores: {}, history: [], recentGuesses: [], current: null, timer: null,
+    persistScores: 'reverseScores', persistHistory: 'reverseHistory', persistGuesses: 'reverseGuesses',
     allKeys() { return appState.keys; },
     pickItem(k) { return { digits: k, word: appState.wordlist[k] }; },
     getPrompt(item) { return item.word; },
@@ -46,8 +52,8 @@ export const MODES: AllModes = {
   mixed: {
     promptId: 'mix-prompt', inputId: 'mix-input',
     feedbackId: 'mix-feedback', submitId: 'mix-submit',
-    scores: {}, history: [], current: null, timer: null,
-    persistScores: 'mixedScores', persistHistory: 'mixedHistory',
+    scores: {}, history: [], recentGuesses: [], current: null, timer: null,
+    persistScores: 'mixedScores', persistHistory: 'mixedHistory', persistGuesses: 'mixedGuesses',
     allKeys() { return appState.keys; },
     pickItem(k): WordQuizItem {
       const mode = Math.random() < 0.5 ? 'forward' : 'reverse';
@@ -72,11 +78,11 @@ export const MODES: AllModes = {
   consonant: {
     promptId: 'con-prompt', inputId: 'con-input',
     feedbackId: 'con-feedback', submitId: 'con-submit',
-    scores: {}, history: [], current: null, timer: null,
-    persistScores: 'conScores', persistHistory: 'conHistory',
+    scores: {}, history: [], recentGuesses: [], current: null, timer: null,
+    persistScores: 'conScores', persistHistory: 'conHistory', persistGuesses: 'conGuesses',
     allKeys() { return appState.conKeys; },
     pickItem(k) { return { key: k }; },
-    getPrompt(item) { const d: Record<string, string> = { C: 'C (hard)', G: 'G (hard)' }; return d[item.key] ?? item.key; },
+    getPrompt(item) { return CON_DISPLAY_NAMES[item.key] ?? item.key; },
     getAnswer(item) { return appState.conMap[item.key]; },
     normalize(raw) { return raw; },
     formatCorrect(item) { return appState.conMap[item.key]; },
@@ -97,6 +103,7 @@ for (const name of Object.keys(MODES) as (keyof AllModes)[]) {
   STATE_FIELDS.push(
     { key: mode.persistScores, get() { return mode.scores; }, set(v) { mode.scores = (v as typeof mode.scores) ?? {}; } },
     { key: mode.persistHistory, get() { return mode.history; }, set(v) { mode.history = (v as typeof mode.history) ?? []; } },
+    { key: mode.persistGuesses, get() { return mode.recentGuesses; }, set(v) { mode.recentGuesses = (v as typeof mode.recentGuesses) ?? []; } },
   );
 }
 

@@ -87,17 +87,9 @@ This takes 10–30 seconds (WordNet traversal + CMU lookups). The generator:
 
 ## Customizing Words
 
-To override specific associations, edit the `MANUAL_OVERRIDES` dict in `trainer/generator.py`:
+Individual word associations are customized per-user via the grid UI (click any cell to edit, with autocomplete suggestions).
 
-```python
-MANUAL_OVERRIDES = {
-    "04": "star",   # S=0, T=1... wait, check encoding first!
-}
-```
-
-Overrides still must pass validation (encoding, noun, concrete). Run `python trainer/generator.py` after editing to regenerate.
-
-To block inappropriate words, add them to `BLOCKED_WORDS` in `trainer/generator.py`.
+To block inappropriate words from auto-generation, add them to `BLOCKED_WORDS` in `trainer/generator.py`, then run `python trainer/generator.py` to regenerate.
 
 ## CLI Lookup
 
@@ -131,9 +123,10 @@ memorization-major-system/
 ├── scripts/
 │   └── lookup.py           # CLI tool for number/word lookups
 ├── src/
-│   ├── ts/                  # TypeScript source (8 modules)
-│   └── scss/                # SCSS source (10 partials)
+│   ├── ts/                  # TypeScript source (10 modules)
+│   └── scss/                # SCSS source (12 partials)
 ├── templates/
+│   ├── index.html          # Main SPA (Django-rendered)
 │   └── login.html          # Login/register page
 ├── static/
 │   ├── js/app.js           # Built JS bundle (gitignored)

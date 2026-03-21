@@ -8,116 +8,9 @@ Run:
     python -m pytest test_persistence.py -v
 """
 
-import json
-import os
-import subprocess
-import tempfile
 import unittest
-from pathlib import Path
 
-# JS helper: mock browser globals, extract just the state + persistence
-# functions from the app, and run assertions in Node.
-_NODE_HARNESS = r"""
-// -- localStorage mock --
-var _store = {};
-var localStorage = {
-  getItem: function(k){ return _store[k] || null; },
-  setItem: function(k,v){ _store[k] = v; },
-  removeItem: function(k){ delete _store[k]; },
-  clear: function(){ _store = {}; }
-};
-
-// -- minimal DOM stubs (never actually called in persistence tests) --
-var _stubEl = {textContent:'',value:'',innerHTML:'',disabled:false,className:'',
-  focus:function(){},appendChild:function(){},addEventListener:function(){},
-  classList:{add:function(){},remove:function(){}},
-  setAttribute:function(){},getAttribute:function(){return 'dark';},
-  removeAttribute:function(){},
-  querySelector:function(){ return _stubEl; },
-  querySelectorAll:function(){ return {forEach:function(){}}; },
-  insertAdjacentHTML:function(){},
-  parentNode:{querySelector:function(){return _stubEl;}},
-  remove:function(){}};
-var document = {
-  getElementById: function(){ return _stubEl; },
-  querySelectorAll: function(){ return {forEach:function(){}}; },
-  querySelector: function(){ return _stubEl; },
-  createElement: function(){ return Object.create(_stubEl); },
-  documentElement: {getAttribute:function(){return 'dark';},setAttribute:function(){}},
-  cookie: ''
-};
-var fetch = function(){ return Promise.resolve({ok:true,json:function(){return Promise.resolve({})}}); };
-function clearTimeout(){}
-function setTimeout(){ return 0; }
-
-// -- paste the app state + persistence code --
-%JSCODE%
-
-// -- test runner --
-var fs = require('fs');
-var _tests = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
-var results = [];
-for(var _ti = 0; _ti < _tests.length; _ti++){
-  try {
-    eval(_tests[_ti].code);
-    results.push({name: _tests[_ti].name, pass: true});
-  } catch(e) {
-    results.push({name: _tests[_ti].name, pass: false, error: e.message});
-  }
-}
-process.stdout.write(JSON.stringify(results));
-"""
-
-
-_PROJECT_ROOT = Path(__file__).resolve().parent.parent
-_JS_FILES = [
-    str(_PROJECT_ROOT / "static" / "js" / "app.js"),
-]
-
-def _extract_js_block():
-    """Concatenate all JS files in include order."""
-    parts = []
-    for path in _JS_FILES:
-        with open(path, encoding="utf-8") as f:
-            parts.append(f.read())
-    return "\n".join(parts)
-
-
-def _run_js_tests(tests):
-    """Run a list of {name, code} JS test snippets in Node and return results."""
-    js_code = _extract_js_block()
-    # Remove the init() call at the bottom (it calls fetch which we don't need)
-    import re
-    # Unwrap esbuild IIFE so variables are global in test scope
-    js_code = js_code.replace('"use strict";\n(() => {\n', "")
-    js_code = js_code.replace("\n})();\n", "\n")
-    # Strip Object.assign(window, ...) since window doesn't exist in Node
-    js_code = re.sub(r"Object\.assign\(window,\s*\{[^}]*\}\);", "", js_code)
-    # Remove init() call (may be indented by esbuild)
-    js_code = re.sub(r"\n\s*init\(\);\n", "\n", js_code)
-    # Convert let/const to var so they're accessible across eval scopes
-    js_code = js_code.replace("\nlet ", "\nvar ").replace("\nconst ", "\nvar ")
-
-    harness = _NODE_HARNESS.replace("%JSCODE%", js_code)
-
-    # Write harness and tests to temp files (avoids -e arg-passing issues)
-    with tempfile.NamedTemporaryFile("w", suffix=".cjs", delete=False, encoding="utf-8") as hf:
-        hf.write(harness)
-        harness_path = hf.name
-    with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False, encoding="utf-8") as tf:
-        json.dump(tests, tf)
-        tests_path = tf.name
-    try:
-        result = subprocess.run(
-            ["node", harness_path, tests_path],
-            capture_output=True, text=True, timeout=10,
-        )
-        if result.returncode != 0:
-            raise RuntimeError(f"Node failed:\n{result.stderr}")
-        return json.loads(result.stdout)
-    finally:
-        os.unlink(harness_path)
-        os.unlink(tests_path)
+from tests.js_harness import extract_js, run_js_tests as _run_js_tests
 
 
 class TestSaveLoadRoundTrip(unittest.TestCase):
@@ -332,7 +225,7 @@ class TestSaveCallSites(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.js = _extract_js_block()
+        cls.js = extract_js()
 
     def _function_body(self, name):
         """Extract the body of a JS function by name."""

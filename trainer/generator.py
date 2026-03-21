@@ -8,6 +8,7 @@ encoding validation.
 import json
 import logging
 import random
+from collections import deque
 from pathlib import Path
 
 import nltk
@@ -65,9 +66,9 @@ def is_concrete_noun_synset(synset):
     """Check whether *synset* traces to an accepted concrete root via hypernyms."""
     roots = _get_concrete_roots()
     visited = set()
-    queue = [synset]
+    queue = deque([synset])
     while queue:
-        current = queue.pop(0)
+        current = queue.popleft()
         if current in roots:
             return True
         if current in visited:

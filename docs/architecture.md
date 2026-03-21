@@ -41,7 +41,7 @@ The system follows a **generate-then-serve** pattern: Python modules produce a v
                │ gunicorn + nginx (port 8734)
                ▼
 ┌──────────────────────────────────────────────────────┐
-│  static/index.html (SPA, offline-first)              │
+│  templates/index.html (SPA, offline-first)            │
 │  ├─ Grid view (10×10, color-coded mastery)           │
 │  ├─ Quiz: number → word                              │
 │  ├─ Quiz: word → number                              │
@@ -58,7 +58,7 @@ Three distinct layers with minimal coupling:
 |-------|---------|----------------|
 | **Encoding** | `validator.py` | CMU phoneme lookup, digit conversion |
 | **Generation** | `generator.py` | WordNet nouns, candidate selection, validation, persistence |
-| **Serving** | `config/`, `trainer/`, `static/index.html` | Django app, API endpoints, auth, browser UI |
+| **Serving** | `config/`, `trainer/`, `templates/index.html`, `src/ts/`, `src/scss/` | Django app, API endpoints, auth, browser UI |
 
 ## Module Dependency Graph
 
@@ -177,9 +177,9 @@ def select_best_word(candidates):
 
 Deterministic: shortest word wins, alphabetical tiebreaker. No randomness in final selection.
 
-### Step 4: Manual overrides (`generator.py:24`)
+### Step 4: Blocked words (`generator.py:23`)
 
-`MANUAL_OVERRIDES` dict is checked before automatic selection. Allows human curation of specific entries while still requiring them to pass validation.
+`BLOCKED_WORDS` set excludes offensive, abbreviated, or unsuitable words. Custom associations are set per-user via the grid UI, not in the generator.
 
 ## Validation Pipeline
 
@@ -223,7 +223,7 @@ The server uses Django with gunicorn behind nginx (port 8734 in production).
 
 | Route | View | Response |
 |-------|------|----------|
-| `/` | `index_view` | Serves `static/index.html` with CSRF cookie |
+| `/` | `index_view` | Renders `templates/index.html` via Django template rendering with CSRF cookie |
 | `/api/wordlist` | `wordlist_view` | Wordlist JSON (100 entries) |
 | `/api/mapping` | `mapping_view` | Digit-to-sounds reference |
 | `/api/state` | `state_view` | GET: load quiz state; POST: save quiz state |
@@ -242,36 +242,45 @@ Stores quiz state per user (authenticated) or per IP (anonymous):
 - `reverse_scores`, `reverse_history` — reverse quiz state
 - `mixed_scores`, `mixed_history` — mixed quiz state
 - `con_scores`, `con_history` — consonant quiz state
-- `theme` — dark/light preference
+- `theme` — dark/light/oled/high-contrast preference
 - `updated_at` — auto-updated timestamp
 
 On registration, IP-based state is merged into the new user account.
 
 ## Frontend
 
-`static/index.html` is a self-contained SPA (inline CSS + JS, no build step). Offline-first: loads from localStorage immediately, syncs to server in background.
+`templates/index.html` is a Django-served SPA. TypeScript source in `src/ts/` is compiled via esbuild into `static/js/app.js`; SCSS in `src/scss/` is compiled via sass into `static/css/app.css`. Build step: `npm run build`. Offline-first: loads from localStorage immediately, syncs to server in background.
 
 ### State
 
-```javascript
-var wordlist = {};              // {"00":"sis",...} from /api/wordlist
-var mapping  = {};              // {"0":"S, Z",...} from /api/mapping
-var score    = {correct:0, total:0};  // session score
-var currentQuiz    = null;      // {digits, word} for active quiz
-var currentReverse = null;      // {digits, word} for active reverse quiz
-var currentMixed   = null;      // {digits, word, mode} for active mixed quiz
-var currentCon     = null;      // consonant quiz state
+All state is consolidated into two TypeScript objects in `src/ts/state.ts`:
 
-// Score-based quiz state (independent per quiz type)
-var quizScores = {};            // key → score (default 0)
-var quizHistory = [];           // last 10 shown keys (cooldown FIFO)
-var reverseScores = {};
-var reverseHistory = [];
-var mixedScores = {};
-var mixedHistory = [];
-var conScores = {};
-var conHistory = [];
+```typescript
+// Shared app state (src/ts/state.ts)
+export const appState: AppState = {
+  wordlist: {},              // {"00":"sis",...} merged default + custom
+  defaultWordlist: {},       // from /api/wordlist
+  customWords: {},           // user overrides per digit pair
+  mapping: {},               // {"0":"S, Z",...} from /api/mapping
+  keys: [],                  // sorted digit pair keys
+  score: { correct: 0, total: 0 },
+  timedQuiz: false,
+  tutorialSeen: false,
+  conKeys: [],
+  conMap: {},
+  dyslexiaFont: false,
+};
+
+// Per-quiz-mode config and state (src/ts/state.ts)
+export const MODES: AllModes = {
+  quiz:      { scores: {}, history: [], current: null, ... },
+  reverse:   { scores: {}, history: [], current: null, ... },
+  mixed:     { scores: {}, history: [], current: null, ... },
+  consonant: { scores: {}, history: [], current: null, ... },
+};
 ```
+
+Persistence uses a `STATE_FIELDS` manifest -- add new persisted fields there, not in saveState/loadState individually.
 
 State persists across page refreshes via localStorage. On each state change, `saveState()` writes to localStorage and fire-and-forget POSTs to `/api/state`.
 
@@ -287,7 +296,7 @@ All quiz modes use **score-based selection with cooldown** instead of random pic
 
 **Scoring:**
 - Correct answer: score increments (+1)
-- Incorrect/skip: score decrements (-1)
+- Incorrect: score decrements (-1); Skip: no score change, but added to history cooldown
 - Scores start at 0 for all keys
 
 **Feedback:** Shows correct/incorrect status. Does not display individual scores.
@@ -298,11 +307,11 @@ Grid cells are color-coded based on combined scores across all quiz modes:
 
 | Combined Score | Class | Color |
 |----------------|-------|-------|
-| <= -2 | `mastery-0` | Red |
-| <= 0 | `mastery-1` | Orange |
-| <= 2 | `mastery-2` | Neutral (default) |
-| <= 5 | `mastery-3` | Yellow-green |
-| > 5 | `mastery-4` | Green |
+| <= -3 | `mastery-0` | Red |
+| < 0 | `mastery-1` | Orange |
+| <= 3 | `mastery-2` | Neutral (default) |
+| <= 8 | `mastery-3` | Yellow-green |
+| > 8 | `mastery-4` | Green |
 
 ### Offline-First Init
 

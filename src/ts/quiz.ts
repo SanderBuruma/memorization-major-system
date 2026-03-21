@@ -1,12 +1,23 @@
 import { appState, MODES } from './state';
 import { QuizItem, QuizMode } from './types';
 import { saveState } from './persistence';
-import { updateScore } from './ui';
+import { updateScore, updateAccuracy } from './ui';
 
 let countdownInterval: ReturnType<typeof setInterval> | null = null;
 let countdownTimeout: ReturnType<typeof setTimeout> | null = null;
 
-const TIME_LIMITS = [15, 10, 6, 5, 4, 4, 3]; // index 0 = score 1
+const MAX_RECENT_GUESSES = 100;
+
+function recordGuess<T extends QuizItem>(mode: QuizMode<T>, correct: boolean): void {
+  mode.recentGuesses.push(correct);
+  if (mode.recentGuesses.length > MAX_RECENT_GUESSES) mode.recentGuesses.shift();
+}
+
+/** Countdown seconds by mastery score: score 1 = 15s, score 2 = 10s, ...; scores above 7 use 3s. */
+const TIME_LIMITS = [15, 10, 6, 5, 4, 4, 3];
+
+/** Delay (ms) before auto-advancing to the next question after answer feedback. */
+const NEXT_QUESTION_DELAY_MS = 1800;
 
 function getTimeLimit(score: number): number {
   if (score <= 0) return 0;
@@ -62,11 +73,13 @@ function timeoutMode<T extends QuizItem>(mode: QuizMode<T>): void {
   fb.className = 'feedback incorrect';
   fb.textContent = `Time's up! Answer: ${mode.formatCorrect(mode.current)}`;
 
+  recordGuess(mode, false);
   mode.history.push(key);
   if (mode.history.length > 10) mode.history.shift();
   updateScore();
+  updateAccuracy(mode);
   saveState();
-  mode.timer = setTimeout(() => { startMode(mode); }, 1800);
+  mode.timer = setTimeout(() => { startMode(mode); }, NEXT_QUESTION_DELAY_MS);
 }
 
 function pickNext(scores: Record<string, number>, history: string[], allKeys: string[]): string {
@@ -117,7 +130,8 @@ export function checkMode<T extends QuizItem>(mode: QuizMode<T>): void {
   const key = mode.historyKey(mode.current);
   appState.score.total++;
   const fb = document.getElementById(mode.feedbackId)!;
-  if (answer === correct) {
+  const isCorrect = answer === correct;
+  if (isCorrect) {
     appState.score.correct++;
     mode.scores[key] = (mode.scores[key] ?? 0) + 1;
     fb.className = 'feedback correct';
@@ -127,11 +141,13 @@ export function checkMode<T extends QuizItem>(mode: QuizMode<T>): void {
     fb.className = 'feedback incorrect';
     fb.textContent = `Incorrect. Answer: ${mode.formatCorrect(mode.current)}`;
   }
+  recordGuess(mode, isCorrect);
   mode.history.push(key);
   if (mode.history.length > 10) mode.history.shift();
   updateScore();
+  updateAccuracy(mode);
   saveState();
-  mode.timer = setTimeout(() => { startMode(mode); }, 1800);
+  mode.timer = setTimeout(() => { startMode(mode); }, NEXT_QUESTION_DELAY_MS);
 }
 
 export function skipMode<T extends QuizItem>(mode: QuizMode<T>): void {

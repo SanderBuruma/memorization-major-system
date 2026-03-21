@@ -12,7 +12,7 @@ Built with Django, TypeScript, and SCSS.
 - **Quiz** — see a number, type the word
 - **Reverse** — see a word, type the number
 - **Mixed** — randomly alternates between Quiz and Reverse
-- **Consecutive** — numbers in sequence (00, 01, 02, ...)
+- **Consonant** — see a consonant sound, type the digit
 
 Each mode tracks per-number scores and history independently. A settings panel controls timer duration.
 

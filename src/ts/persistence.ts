@@ -27,7 +27,9 @@ export function saveState(): void {
 
 export function loadState(): void {
   try {
-    const stored = JSON.parse(localStorage.getItem('quizState')!);
+    const raw = localStorage.getItem('quizState');
+    if (!raw) return;
+    const stored = JSON.parse(raw);
     if (!stored) return;
     if (stored.quizPool || stored.quizMastered) {
       localStorage.removeItem('quizState');

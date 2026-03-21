@@ -1,4 +1,4 @@
-import { appState, MODES } from './state';
+import { appState, MODES, MASTERY_THRESHOLDS } from './state';
 
 export function renderProfile(): void {
   const el = document.getElementById('profile-content')!;
@@ -12,12 +12,13 @@ export function renderProfile(): void {
   const mCov = Math.round(allKeys.filter((key) => MODES.mixed.scores[key] !== undefined).length / totalKeys * 100);
   const cAtt = appState.conKeys.filter((key) => MODES.consonant.scores[key] !== undefined).length;
   const cCov = appState.conKeys.length ? Math.round(cAtt / appState.conKeys.length * 100) : 0;
+  const [t0, t1, t2, t3] = MASTERY_THRESHOLDS;
   const mast = [0, 0, 0, 0, 0];
   combined.forEach((score) => {
-    if (score <= -3) mast[0]++;
-    else if (score < 0) mast[1]++;
-    else if (score <= 3) mast[2]++;
-    else if (score <= 8) mast[3]++;
+    if (score <= t0) mast[0]++;
+    else if (score < t1) mast[1]++;
+    else if (score <= t2) mast[2]++;
+    else if (score <= t3) mast[3]++;
     else mast[4]++;
   });
   const sorted = combined.slice().sort((a, b) => a - b);

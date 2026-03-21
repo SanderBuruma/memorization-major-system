@@ -90,6 +90,13 @@
   }
 }
 
+.quiz-accuracy {
+  font-size: 0.95em;
+  color: var(--text-muted);
+  margin-top: 8px;
+  min-height: 1.4em;
+}
+
 // Score bar
 .score-bar {
   background: var(--bg-surface);

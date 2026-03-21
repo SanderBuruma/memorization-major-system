@@ -9,11 +9,7 @@ if 'testserver' not in settings.ALLOWED_HOSTS:
     settings.ALLOWED_HOSTS.append('testserver')
 
 import json
-import re
-import subprocess
-import tempfile
 import unittest
-from pathlib import Path
 
 from django.test import TestCase, override_settings
 from trainer.models import QuizState
@@ -120,92 +116,9 @@ class TestTutorialHTML(TestCase):
         self.assertIn('id="tutorial-dots"', content)
 
 
-# --- JS persistence tests (Node.js harness) ---
+# --- JS persistence tests (shared Node.js harness) ---
 
-_PROJECT_ROOT = Path(__file__).resolve().parent.parent
-_JS_PATH = str(_PROJECT_ROOT / "static" / "js" / "app.js")
-
-_NODE_HARNESS = r"""
-var _store = {};
-var localStorage = {
-  getItem: function(k){ return _store[k] || null; },
-  setItem: function(k,v){ _store[k] = v; },
-  removeItem: function(k){ delete _store[k]; },
-  clear: function(){ _store = {}; }
-};
-var _stubEl = {textContent:'',value:'',innerHTML:'',disabled:false,className:'',
-  style:{},
-  focus:function(){},appendChild:function(){},addEventListener:function(){},
-  classList:{add:function(){},remove:function(){},toggle:function(){},contains:function(){return false;}},
-  setAttribute:function(){},getAttribute:function(){return 'dark';},
-  removeAttribute:function(){},
-  querySelector:function(){ return _stubEl; },
-  querySelectorAll:function(){ return {forEach:function(){}}; },
-  insertAdjacentHTML:function(){},
-  parentNode:{querySelector:function(){return _stubEl;}},
-  remove:function(){}};
-var document = {
-  getElementById: function(){ return _stubEl; },
-  querySelectorAll: function(){ return {forEach:function(){}}; },
-  querySelector: function(){ return _stubEl; },
-  createElement: function(){ return Object.create(_stubEl); },
-  documentElement: {getAttribute:function(){return 'dark';},setAttribute:function(){}},
-  cookie: '',
-  body: {classList:{add:function(){},remove:function(){},toggle:function(){}}}
-};
-var window = {};
-var performance = {now: function(){return 0;}};
-var fetch = function(){ return Promise.resolve({ok:true,json:function(){return Promise.resolve({})}}); };
-function clearTimeout(){}
-function setTimeout(){ return 0; }
-function setInterval(){ return 0; }
-function clearInterval(){}
-
-%JSCODE%
-
-var fs = require('fs');
-var _tests = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
-var results = [];
-for(var _ti = 0; _ti < _tests.length; _ti++){
-  try {
-    eval(_tests[_ti].code);
-    results.push({name: _tests[_ti].name, pass: true});
-  } catch(e) {
-    results.push({name: _tests[_ti].name, pass: false, error: e.message});
-  }
-}
-process.stdout.write(JSON.stringify(results));
-"""
-
-
-def _run_js_tests(tests):
-    with open(_JS_PATH, encoding="utf-8") as f:
-        js_code = f.read()
-    js_code = js_code.replace('"use strict";\n(() => {\n', "")
-    js_code = js_code.replace("\n})();\n", "\n")
-    js_code = re.sub(r"Object\.assign\(window,\s*\{[^}]*\}\);", "", js_code)
-    js_code = re.sub(r"\n\s*init\(\);\n", "\n", js_code)
-    js_code = js_code.replace("\nlet ", "\nvar ").replace("\nconst ", "\nvar ")
-
-    harness = _NODE_HARNESS.replace("%JSCODE%", js_code)
-
-    with tempfile.NamedTemporaryFile("w", suffix=".cjs", delete=False, encoding="utf-8") as hf:
-        hf.write(harness)
-        harness_path = hf.name
-    with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False, encoding="utf-8") as tf:
-        json.dump(tests, tf)
-        tests_path = tf.name
-    try:
-        result = subprocess.run(
-            ["node", harness_path, tests_path],
-            capture_output=True, text=True, timeout=10,
-        )
-        if result.returncode != 0:
-            raise RuntimeError(f"Node failed:\n{result.stderr}")
-        return json.loads(result.stdout)
-    finally:
-        os.unlink(harness_path)
-        os.unlink(tests_path)
+from tests.js_harness import run_js_tests as _run_js_tests
 
 
 class TestTutorialSeenPersistence(unittest.TestCase):
@@ -247,19 +160,25 @@ class TestTutorialSeenPersistence(unittest.TestCase):
 
 
 class TestTutorialStepNavigation(unittest.TestCase):
-    def test_tutorial_questions_defined(self):
+    def test_tutorial_picks_words_from_wordlist(self):
         results = _run_js_tests([{
-            "name": "tutorial_questions",
+            "name": "tutorial_dynamic_words",
             "code": """
-                if (!TUTORIAL_QUESTIONS || TUTORIAL_QUESTIONS.length !== 3)
-                    throw new Error('Expected 3 tutorial questions, got ' +
-                        (TUTORIAL_QUESTIONS ? TUTORIAL_QUESTIONS.length : 'undefined'));
-                for (var i = 0; i < TUTORIAL_QUESTIONS.length; i++) {
-                    var q = TUTORIAL_QUESTIONS[i];
-                    if (!q.word || !q.answer)
-                        throw new Error('Question ' + i + ' missing word or answer');
-                    if (q.answer.length !== 2)
-                        throw new Error('Answer should be 2 digits: ' + q.answer);
+                // Populate wordlist so pickRandomWords has data
+                appState.defaultWordlist = {"00":"sis","01":"seat","02":"son","03":"seam","04":"seer","05":"sail"};
+                rebuildWordlist();
+                startTutorial();
+                if (!tutorialQuizWords || tutorialQuizWords.length !== 3)
+                    throw new Error('Expected 3 quiz words, got ' +
+                        (tutorialQuizWords ? tutorialQuizWords.length : 'undefined'));
+                for (var i = 0; i < tutorialQuizWords.length; i++) {
+                    var q = tutorialQuizWords[i];
+                    if (!q.word || !q.digits)
+                        throw new Error('Question ' + i + ' missing word or digits');
+                    if (q.digits.length !== 2)
+                        throw new Error('Digits should be 2 chars: ' + q.digits);
+                    if (appState.wordlist[q.digits] !== q.word)
+                        throw new Error('Word "' + q.word + '" not in wordlist for digits ' + q.digits);
                 }
             """,
         }])
