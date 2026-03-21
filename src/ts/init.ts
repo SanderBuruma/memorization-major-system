@@ -3,7 +3,7 @@ import { getCookie, loadState, applyState, saveState } from './persistence';
 import { toggleTheme, updateToggleIcon } from './theme';
 import { checkQuiz, skipQuiz, checkReverse, skipReverse,
          checkMixed, skipMixed, checkCon, skipCon } from './quiz';
-import { renderGrid, renderRef, showSection, showQuizNav, updateScore, updateMasteryColors, startGridQuiz, checkGridQuiz } from './ui';
+import { renderGrid, renderRef, showSection, showQuizNav, updateScore, updateMasteryColors, startGridQuiz, checkGridQuiz, toggleTimedQuiz } from './ui';
 import { ServerState } from './types';
 
 function updateAuthUI(username: string | null): void {
@@ -81,7 +81,7 @@ Object.assign(window, {
   showSection, showQuizNav, toggleTheme,
   checkQuiz, skipQuiz, checkReverse, skipReverse,
   checkMixed, skipMixed, checkCon, skipCon,
-  startGridQuiz, checkGridQuiz,
+  startGridQuiz, checkGridQuiz, toggleTimedQuiz,
 });
 
 /* Boot */

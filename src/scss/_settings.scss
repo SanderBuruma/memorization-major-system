@@ -1,0 +1,65 @@
+@use 'variables' as *;
+
+.settings-area {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 20px;
+
+  h2 {
+    margin: 0 0 20px;
+    color: var(--text-primary);
+  }
+}
+
+.setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: $border-radius-md;
+  cursor: pointer;
+
+  span {
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--color-primary);
+    cursor: pointer;
+  }
+}
+
+.setting-hint {
+  margin: 8px 0 0;
+  font-size: .85em;
+  color: var(--text-muted);
+}
+
+.settings-btn {
+  width: 34px;
+  height: 34px;
+  border: none;
+  background: var(--bg-page);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all $transition-speed;
+  clip-path: polygon(10px 0, 100% 0, 100% 100%, 10px 100%, 0 50%);
+  padding-left: 12px;
+
+  &:hover {
+    background: var(--bg-nav-hover);
+  }
+
+  svg {
+    width: 18px;
+    height: 18px;
+    fill: var(--text-primary);
+  }
+}

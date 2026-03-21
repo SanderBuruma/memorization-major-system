@@ -3,6 +3,72 @@ import { QuizItem, QuizMode } from './types';
 import { saveState } from './persistence';
 import { updateScore } from './ui';
 
+let countdownInterval: ReturnType<typeof setInterval> | null = null;
+let countdownTimeout: ReturnType<typeof setTimeout> | null = null;
+
+const TIME_LIMITS = [15, 10, 6, 5, 4, 4, 3]; // index 0 = score 1
+
+function getTimeLimit(score: number): number {
+  if (score <= 0) return 0;
+  return TIME_LIMITS[Math.min(score - 1, TIME_LIMITS.length - 1)];
+}
+
+function clearCountdown(): void {
+  if (countdownInterval) { clearInterval(countdownInterval); countdownInterval = null; }
+  if (countdownTimeout) { clearTimeout(countdownTimeout); countdownTimeout = null; }
+  document.querySelectorAll('.quiz-countdown').forEach(el => {
+    el.textContent = '';
+    el.classList.remove('urgent');
+    (el as HTMLElement).style.display = 'none';
+  });
+}
+
+function startCountdown<T extends QuizItem>(mode: QuizMode<T>, seconds: number): void {
+  clearCountdown();
+  const prompt = document.getElementById(mode.promptId)!;
+  const quizArea = prompt.parentElement!;
+  let cd = quizArea.querySelector('.quiz-countdown') as HTMLElement | null;
+  if (!cd) {
+    cd = document.createElement('div');
+    cd.className = 'quiz-countdown';
+    prompt.insertAdjacentElement('afterend', cd);
+  }
+  let remaining = seconds;
+  cd.textContent = `${remaining}s`;
+  cd.classList.remove('urgent');
+  cd.style.display = '';
+
+  countdownInterval = setInterval(() => {
+    remaining--;
+    cd!.textContent = `${remaining}s`;
+    if (remaining <= 3) cd!.classList.add('urgent');
+  }, 1000);
+
+  countdownTimeout = setTimeout(() => { timeoutMode(mode); }, seconds * 1000);
+}
+
+function timeoutMode<T extends QuizItem>(mode: QuizMode<T>): void {
+  clearCountdown();
+  if (!mode.current) return;
+  const inp = document.getElementById(mode.inputId) as HTMLInputElement;
+  inp.disabled = true;
+  (document.getElementById(mode.submitId) as HTMLButtonElement).disabled = true;
+
+  const key = mode.historyKey(mode.current);
+  mode.scores[key] = (mode.scores[key] ?? 0) - 1;
+  appState.score.total++;
+
+  const fb = document.getElementById(mode.feedbackId)!;
+  fb.className = 'feedback incorrect';
+  fb.textContent = `Time's up! Answer: ${mode.formatCorrect(mode.current)}`;
+
+  mode.history.push(key);
+  if (mode.history.length > 10) mode.history.shift();
+  updateScore();
+  saveState();
+  mode.timer = setTimeout(() => { startMode(mode); }, 1800);
+}
+
 function pickNext(scores: Record<string, number>, history: string[], allKeys: string[]): string {
   let eligible = allKeys.filter((key) => !history.includes(key));
   if (eligible.length === 0) eligible = allKeys.slice();
@@ -30,11 +96,15 @@ export function startMode<T extends QuizItem>(mode: QuizMode<T>): void {
   const fb = document.getElementById(mode.feedbackId)!;
   fb.className = 'feedback empty';
   fb.textContent = '';
+  const score = mode.scores[pick] ?? 0;
+  const limit = appState.timedQuiz ? getTimeLimit(score) : 0;
+  if (limit > 0) startCountdown(mode, limit); else clearCountdown();
   if (mode.startExtra) mode.startExtra(item, inp);
   inp.focus();
 }
 
 export function checkMode<T extends QuizItem>(mode: QuizMode<T>): void {
+  clearCountdown();
   if (!mode.current) return;
   const inp = document.getElementById(mode.inputId) as HTMLInputElement;
   const raw = inp.value.trim();
@@ -65,6 +135,7 @@ export function checkMode<T extends QuizItem>(mode: QuizMode<T>): void {
 }
 
 export function skipMode<T extends QuizItem>(mode: QuizMode<T>): void {
+  clearCountdown();
   if (mode.current) {
     mode.history.push(mode.historyKey(mode.current));
     if (mode.history.length > 10) mode.history.shift();

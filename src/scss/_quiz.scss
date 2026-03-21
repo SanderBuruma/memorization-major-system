@@ -16,6 +16,15 @@
   user-select: none;
 }
 
+.quiz-countdown {
+  font-size: 1.3em;
+  font-weight: 700;
+  color: var(--text-muted);
+  min-height: 1.6em;
+  font-variant-numeric: tabular-nums;
+  &.urgent { color: var(--color-error); }
+}
+
 .quiz-input {
   font-size: 1.4em;
   padding: 10px 16px;

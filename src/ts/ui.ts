@@ -87,7 +87,7 @@ export function showSection(name: string): void {
   if (sub) sub.classList.add('active');
   const sectionStarters: Record<string, () => void> = {
     quiz: startQuiz, reverse: startReverse, mixed: startMixed,
-    consonant: startCon, gridquiz: startGridQuiz, profile: renderProfile,
+    consonant: startCon, gridquiz: startGridQuiz, profile: renderProfile, settings: renderSettings,
   };
   sectionStarters[name]?.();
 }
@@ -227,6 +227,15 @@ export function checkGridQuiz(): void {
     if (inp) inp.disabled = true;
   });
   document.getElementById('gridquiz-check')!.setAttribute('disabled', '');
+}
+
+export function toggleTimedQuiz(enabled: boolean): void {
+  appState.timedQuiz = enabled;
+  saveState();
+}
+
+function renderSettings(): void {
+  (document.getElementById('setting-timed') as HTMLInputElement).checked = appState.timedQuiz;
 }
 
 export function updateMasteryColors(): void {

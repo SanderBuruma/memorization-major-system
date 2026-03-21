@@ -5,6 +5,7 @@ export interface AppState {
   mapping: Record<string, string>;
   keys: string[];
   score: Score;
+  timedQuiz: boolean;
   conKeys: string[];
   conMap: Record<string, string>;
 }
