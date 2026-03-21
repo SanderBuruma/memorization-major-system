@@ -23,7 +23,7 @@ body{font-family:system-ui,-apple-system,sans-serif;background:var(--bg-page);co
 /* Grid */
 .grid{display:grid;grid-template-columns:repeat(10,1fr);gap:4px}
 .grid-cell{text-align:center;padding:10px 2px;background:var(--bg-surface);border-radius:6px;
-  border:1px solid var(--border-color);transition:transform .1s,box-shadow .1s;cursor:default}
+  border:1px solid var(--border-color);transition:transform .1s,box-shadow .1s,border-color .15s;cursor:text}
 .grid-cell:hover{transform:translateY(-2px);box-shadow:0 4px 12px var(--shadow-hover)}
 .grid-cell .number{font-weight:700;color:var(--color-primary);font-size:1.1em}
 .grid-cell .word{font-size:.82em;color:var(--text-muted);margin-top:2px}
@@ -110,6 +110,11 @@ body{font-family:system-ui,-apple-system,sans-serif;background:var(--bg-page);co
 .mastery-2 { }
 .mastery-3 { background-color: var(--bg-mastery-3) !important; color: var(--color-mastery-3); }
 .mastery-4 { background-color: var(--bg-mastery-4) !important; color: var(--color-mastery-4); }
+
+.custom-marker{color:var(--color-primary);font-size:.7em;vertical-align:super}
+.grid-cell .word-input{background:transparent;color:var(--text-muted);border:none;outline:none;
+  font-size:.82em;text-align:center;width:100%;margin-top:2px;font-family:inherit}
+.grid-cell:focus-within{border-color:var(--color-primary)}
 
 /* Profile */
 .profile-area{max-width:700px;margin:0 auto}
@@ -294,6 +299,8 @@ updateToggleIcon();
 /*  State                                                              */
 /* ================================================================== */
 var wordlist = {};
+var defaultWordlist = {};
+var customWords = {};
 var mapping  = {};
 var keys     = [];          // ["00","01",...,"99"]
 var score    = {correct:0, total:0};
@@ -330,7 +337,8 @@ function saveState(){
     quizScores: quizScores, quizHistory: quizHistory,
     reverseScores: reverseScores, reverseHistory: reverseHistory,
     mixedScores: mixedScores, mixedHistory: mixedHistory,
-    conScores: conScores, conHistory: conHistory
+    conScores: conScores, conHistory: conHistory,
+    customWords: customWords
   };
   localStorage.setItem('quizState', JSON.stringify(state));
   // Background sync to server (fire-and-forget)
@@ -360,6 +368,7 @@ function loadState(){
     mixedHistory = s.mixedHistory || [];
     conScores = s.conScores || {};
     conHistory = s.conHistory || [];
+    customWords = s.customWords || {};
   } catch(e){}
 }
 
@@ -373,6 +382,8 @@ function applyState(s){
   mixedHistory = s.mixedHistory || [];
   conScores = s.conScores || {};
   conHistory = s.conHistory || [];
+  customWords = s.customWords || {};
+  rebuildWordlist();
   saveState();
   updateScore();
   renderGrid();
@@ -406,13 +417,13 @@ async function init(){
   var cachedWl = localStorage.getItem('wordlist');
   var cachedMap = localStorage.getItem('mapping');
   if(cachedWl && cachedMap){
-    wordlist = JSON.parse(cachedWl);
+    defaultWordlist = JSON.parse(cachedWl);
     mapping = JSON.parse(cachedMap);
-    keys = Object.keys(wordlist).sort();
   }
 
   // Load quiz state from localStorage immediately (offline-first)
   loadState();
+  rebuildWordlist();
 
   // Build conMap from whatever mapping we have
   buildConMap();
@@ -428,9 +439,9 @@ async function init(){
     ]);
     var wlRes = results[0], mapRes = results[1], stateRes = results[2];
     if(wlRes.ok){
-      wordlist = await wlRes.json();
-      localStorage.setItem('wordlist', JSON.stringify(wordlist));
-      keys = Object.keys(wordlist).sort();
+      defaultWordlist = await wlRes.json();
+      localStorage.setItem('wordlist', JSON.stringify(defaultWordlist));
+      rebuildWordlist();
     }
     if(mapRes.ok){
       mapping = await mapRes.json();
@@ -453,6 +464,16 @@ async function init(){
 }
 
 /* ================================================================== */
+/*  Wordlist merge                                                     */
+/* ================================================================== */
+function rebuildWordlist(){
+  wordlist = {};
+  for(var k in defaultWordlist) wordlist[k] = defaultWordlist[k];
+  for(var k in customWords) wordlist[k] = customWords[k];
+  keys = Object.keys(wordlist).sort();
+}
+
+/* ================================================================== */
 /*  Grid                                                               */
 /* ================================================================== */
 function renderGrid(){
@@ -464,7 +485,45 @@ function renderGrid(){
     var c = document.createElement('div');
     c.className = 'grid-cell';
     c.setAttribute('data-key', d);
-    c.innerHTML = '<div class="number">'+d+'</div><div class="word">'+w+'</div>';
+    var isCustom = customWords[d] ? '<span class="custom-marker">*</span>' : '';
+    c.innerHTML = '<div class="number">'+d+isCustom+'</div>';
+    var inp = document.createElement('input');
+    inp.className = 'word-input';
+    inp.value = w;
+    inp.setAttribute('data-key', d);
+    inp.addEventListener('keydown', function(e){
+      if(e.key==='Enter') this.blur();
+    });
+    inp.addEventListener('input', function(){
+      var key = this.getAttribute('data-key');
+      var val = this.value.trim();
+      if(val && val !== defaultWordlist[key]){
+        customWords[key] = val;
+      } else if(!val || val === defaultWordlist[key]){
+        delete customWords[key];
+      }
+      rebuildWordlist();
+      saveState();
+    });
+    inp.addEventListener('blur', function(){
+      var key = this.getAttribute('data-key');
+      if(!this.value.trim()){
+        delete customWords[key];
+        rebuildWordlist();
+        this.value = wordlist[key] || '';
+        saveState();
+      }
+      // Update marker without full re-render
+      var numEl = this.parentNode.querySelector('.number');
+      var marker = numEl.querySelector('.custom-marker');
+      if(customWords[key] && !marker){
+        numEl.insertAdjacentHTML('beforeend', '<span class="custom-marker">*</span>');
+      } else if(!customWords[key] && marker){
+        marker.remove();
+      }
+    });
+    c.addEventListener('click', function(){ this.querySelector('.word-input').focus(); });
+    c.appendChild(inp);
     g.appendChild(c);
   }
 }

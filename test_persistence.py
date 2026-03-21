@@ -198,6 +198,51 @@ class TestSaveLoadRoundTrip(unittest.TestCase):
         self.assertTrue(results[0]["pass"], results[0].get("error"))
 
 
+class TestCustomWordsPersistence(unittest.TestCase):
+    """customWords survives saveState/loadState round-trip."""
+
+    def test_custom_words_round_trip(self):
+        results = _run_js_tests([{
+            "name": "customWords_round_trip",
+            "code": """
+                customWords = {'03': 'myword', '42': 'hammer'};
+                saveState();
+                customWords = {};
+                loadState();
+                if(customWords['03'] !== 'myword') throw new Error('03: ' + customWords['03']);
+                if(customWords['42'] !== 'hammer') throw new Error('42: ' + customWords['42']);
+            """,
+        }])
+        self.assertTrue(results[0]["pass"], results[0].get("error"))
+
+    def test_custom_words_in_save_payload(self):
+        results = _run_js_tests([{
+            "name": "customWords_in_payload",
+            "code": """
+                customWords = {'10': 'dice'};
+                saveState();
+                var saved = JSON.parse(localStorage.getItem('quizState'));
+                if(!saved.customWords) throw new Error('customWords missing from saved state');
+                if(saved.customWords['10'] !== 'dice') throw new Error('value: ' + saved.customWords['10']);
+            """,
+        }])
+        self.assertTrue(results[0]["pass"], results[0].get("error"))
+
+    def test_rebuild_wordlist_merges(self):
+        results = _run_js_tests([{
+            "name": "rebuildWordlist_merges",
+            "code": """
+                defaultWordlist = {'00': 'sauce', '01': 'seed', '02': 'sun'};
+                customWords = {'01': 'custom'};
+                rebuildWordlist();
+                if(wordlist['00'] !== 'sauce') throw new Error('00: ' + wordlist['00']);
+                if(wordlist['01'] !== 'custom') throw new Error('01: ' + wordlist['01']);
+                if(wordlist['02'] !== 'sun') throw new Error('02: ' + wordlist['02']);
+            """,
+        }])
+        self.assertTrue(results[0]["pass"], results[0].get("error"))
+
+
 class TestLoadStateEdgeCases(unittest.TestCase):
     """loadState() handles missing or corrupt data gracefully."""
 

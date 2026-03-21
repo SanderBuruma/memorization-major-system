@@ -159,6 +159,57 @@ class TestStateAPI(TestCase):
         self.assertEqual(resp.json()['theme'], 'light')
 
 
+class TestCustomWords(TestCase):
+    def test_custom_words_default_empty(self):
+        resp = self.client.get('/api/state')
+        self.assertEqual(resp.json()['customWords'], {})
+
+    def test_post_and_get_custom_words_roundtrip(self):
+        payload = {'customWords': {'03': 'myword', '42': 'hammer'}}
+        self.client.post(
+            '/api/state',
+            data=json.dumps(payload),
+            content_type='application/json',
+        )
+        resp = self.client.get('/api/state')
+        self.assertEqual(resp.json()['customWords'], {'03': 'myword', '42': 'hammer'})
+
+    def test_custom_words_persists_for_user(self):
+        # Register
+        self.client.post('/register/', {
+            'username': 'cwuser', 'password': 'Str0ngP@ss!', 'password2': 'Str0ngP@ss!',
+        })
+        # Save custom words
+        self.client.post(
+            '/api/state',
+            data=json.dumps({'customWords': {'10': 'dice'}}),
+            content_type='application/json',
+        )
+        # Logout + login
+        self.client.post('/logout/')
+        self.client.post('/login/', {'username': 'cwuser', 'password': 'Str0ngP@ss!'})
+        resp = self.client.get('/api/state')
+        self.assertEqual(resp.json()['customWords'], {'10': 'dice'})
+
+    def test_custom_words_isolated_by_ip(self):
+        self.client.post(
+            '/api/state',
+            data=json.dumps({'customWords': {'01': 'alpha'}}),
+            content_type='application/json',
+            REMOTE_ADDR='10.0.0.1',
+        )
+        self.client.post(
+            '/api/state',
+            data=json.dumps({'customWords': {'01': 'beta'}}),
+            content_type='application/json',
+            REMOTE_ADDR='10.0.0.2',
+        )
+        resp_a = self.client.get('/api/state', REMOTE_ADDR='10.0.0.1')
+        resp_b = self.client.get('/api/state', REMOTE_ADDR='10.0.0.2')
+        self.assertEqual(resp_a.json()['customWords'], {'01': 'alpha'})
+        self.assertEqual(resp_b.json()['customWords'], {'01': 'beta'})
+
+
 class TestAuth(TestCase):
     def _register(self, username='testuser', password='Str0ngP@ss!'):
         return self.client.post('/register/', {

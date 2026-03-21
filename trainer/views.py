@@ -50,7 +50,7 @@ def mapping_view(request):
 
 _STATE_KEYS = {
     'score', 'quizScores', 'quizHistory', 'reverseScores', 'reverseHistory',
-    'mixedScores', 'mixedHistory', 'conScores', 'conHistory', 'theme',
+    'mixedScores', 'mixedHistory', 'conScores', 'conHistory', 'customWords', 'theme',
 }
 
 
@@ -68,6 +68,7 @@ def state_view(request):
             'mixedHistory': state.mixed_history,
             'conScores': state.con_scores,
             'conHistory': state.con_history,
+            'customWords': state.custom_words,
             'theme': state.theme,
             'user': request.user.username if request.user.is_authenticated else None,
             'updatedAt': state.updated_at.isoformat() if state.updated_at else None,
@@ -104,6 +105,8 @@ def state_view(request):
             state.con_scores = data['conScores']
         if 'conHistory' in data:
             state.con_history = data['conHistory']
+        if 'customWords' in data:
+            state.custom_words = data['customWords']
         if 'theme' in data:
             state.theme = data['theme']
 

@@ -17,6 +17,7 @@ class QuizState(models.Model):
     mixed_history = models.JSONField(default=list)
     con_scores = models.JSONField(default=dict)
     con_history = models.JSONField(default=list)
+    custom_words = models.JSONField(default=dict)
 
     theme = models.CharField(max_length=5, default='dark')
     updated_at = models.DateTimeField(auto_now=True)
