@@ -9,6 +9,11 @@ body {
   background: var(--bg-page);
   color: var(--text-primary);
   min-height: 100vh;
+
+  &.dyslexia-font {
+    font-family: 'OpenDyslexic', system-ui, sans-serif;
+    input, button, select, textarea { font-family: inherit; }
+  }
 }
 
 .container {

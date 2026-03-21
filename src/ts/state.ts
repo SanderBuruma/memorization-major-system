@@ -8,8 +8,10 @@ export const appState: AppState = {
   keys: [],
   score: { correct: 0, total: 0 },
   timedQuiz: false,
+  tutorialSeen: false,
   conKeys: [],
   conMap: {},
+  dyslexiaFont: false,
 };
 
 export const MODES: AllModes = {
@@ -87,6 +89,8 @@ export const STATE_FIELDS: StateField[] = [
   { key: 'score', get() { return appState.score; }, set(v) { appState.score = (v as typeof appState.score) ?? { correct: 0, total: 0 }; } },
   { key: 'customWords', get() { return appState.customWords; }, set(v) { appState.customWords = (v as typeof appState.customWords) ?? {}; } },
   { key: 'timedQuiz', get() { return appState.timedQuiz; }, set(v) { appState.timedQuiz = v === true; } },
+  { key: 'tutorialSeen', get() { return appState.tutorialSeen; }, set(v) { appState.tutorialSeen = v === true; } },
+  { key: 'dyslexiaFont', get() { return appState.dyslexiaFont; }, set(v) { appState.dyslexiaFont = v === true; } },
 ];
 for (const name of Object.keys(MODES) as (keyof AllModes)[]) {
   const mode = MODES[name];

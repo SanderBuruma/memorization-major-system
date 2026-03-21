@@ -137,6 +137,16 @@
         <input type="checkbox" id="setting-timed" onchange="toggleTimedQuiz(this.checked)">
       </label>
       <p class="setting-hint">Add a countdown timer to quiz questions. Higher mastery = less time.</p>
+      <label class="setting-row">
+        <span>Theme</span>
+        <select id="setting-theme" onchange="setTheme(this.value)">
+          <option value="dark">Dark</option>
+          <option value="light">Light</option>
+          <option value="oled">OLED</option>
+          <option value="high-contrast">High Contrast</option>
+        </select>
+      </label>
+      <p class="setting-hint">Choose your preferred color theme. OLED uses pure black. High contrast meets WCAG AAA guidelines.</p>
     </div>
   </div>
 

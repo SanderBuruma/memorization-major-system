@@ -6,8 +6,10 @@ export interface AppState {
   keys: string[];
   score: Score;
   timedQuiz: boolean;
+  tutorialSeen: boolean;
   conKeys: string[];
   conMap: Record<string, string>;
+  dyslexiaFont: boolean;
 }
 
 export interface Score { correct: number; total: number; }
