@@ -48,31 +48,32 @@ def mapping_view(request):
     return JsonResponse(_mapping)
 
 
-_STATE_KEYS = {
-    'score', 'quizScores', 'quizHistory', 'reverseScores', 'reverseHistory',
-    'mixedScores', 'mixedHistory', 'conScores', 'conHistory', 'customWords', 'theme',
+_FIELD_MAP = {
+    'quizScores': ('quiz_scores', dict),
+    'quizHistory': ('quiz_history', list),
+    'reverseScores': ('reverse_scores', dict),
+    'reverseHistory': ('reverse_history', list),
+    'mixedScores': ('mixed_scores', dict),
+    'mixedHistory': ('mixed_history', list),
+    'conScores': ('con_scores', dict),
+    'conHistory': ('con_history', list),
+    'customWords': ('custom_words', dict),
 }
+_STATE_KEYS = set(_FIELD_MAP) | {'score', 'theme'}
 
 
 def state_view(request):
     state = get_quiz_state(request)
 
     if request.method == 'GET':
-        return JsonResponse({
+        response = {js_key: getattr(state, field) for js_key, (field, _) in _FIELD_MAP.items()}
+        response.update({
             'score': {'correct': state.score_correct, 'total': state.score_total},
-            'quizScores': state.quiz_scores,
-            'quizHistory': state.quiz_history,
-            'reverseScores': state.reverse_scores,
-            'reverseHistory': state.reverse_history,
-            'mixedScores': state.mixed_scores,
-            'mixedHistory': state.mixed_history,
-            'conScores': state.con_scores,
-            'conHistory': state.con_history,
-            'customWords': state.custom_words,
             'theme': state.theme,
             'user': request.user.username if request.user.is_authenticated else None,
             'updatedAt': state.updated_at.isoformat() if state.updated_at else None,
         })
+        return JsonResponse(response)
 
     if request.method == 'POST':
         try:
@@ -86,27 +87,15 @@ def state_view(request):
         if not data.keys() & _STATE_KEYS:
             return JsonResponse({'error': 'No recognized keys'}, status=400)
 
+        for js_key, (model_field, expected_type) in _FIELD_MAP.items():
+            if js_key in data and isinstance(data[js_key], expected_type):
+                setattr(state, model_field, data[js_key])
         if 'score' in data and isinstance(data['score'], dict):
-            state.score_correct = data['score'].get('correct', state.score_correct)
-            state.score_total = data['score'].get('total', state.score_total)
-        if 'quizScores' in data:
-            state.quiz_scores = data['quizScores']
-        if 'quizHistory' in data:
-            state.quiz_history = data['quizHistory']
-        if 'reverseScores' in data:
-            state.reverse_scores = data['reverseScores']
-        if 'reverseHistory' in data:
-            state.reverse_history = data['reverseHistory']
-        if 'mixedScores' in data:
-            state.mixed_scores = data['mixedScores']
-        if 'mixedHistory' in data:
-            state.mixed_history = data['mixedHistory']
-        if 'conScores' in data:
-            state.con_scores = data['conScores']
-        if 'conHistory' in data:
-            state.con_history = data['conHistory']
-        if 'customWords' in data:
-            state.custom_words = data['customWords']
+            correct = data['score'].get('correct', state.score_correct)
+            total = data['score'].get('total', state.score_total)
+            if isinstance(correct, int) and isinstance(total, int) and correct >= 0 and total >= 0:
+                state.score_correct = correct
+                state.score_total = total
         if 'theme' in data:
             state.theme = data['theme']
 

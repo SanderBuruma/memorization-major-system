@@ -1,6 +1,6 @@
 """Tests for quiz state persistence via localStorage.
 
-Extracts the JS from index.html, runs it in Node.js with a localStorage
+Extracts the JS from templates/js/app.js, runs it in Node.js with a localStorage
 mock and minimal DOM stubs, and verifies saveState/loadState round-trips
 correctly for the score-based quiz system.
 
@@ -29,14 +29,22 @@ var localStorage = {
 // -- minimal DOM stubs (never actually called in persistence tests) --
 var _stubEl = {textContent:'',value:'',innerHTML:'',disabled:false,className:'',
   focus:function(){},appendChild:function(){},addEventListener:function(){},
-  classList:{add:function(){},remove:function(){}}};
+  classList:{add:function(){},remove:function(){}},
+  setAttribute:function(){},getAttribute:function(){return 'dark';},
+  removeAttribute:function(){},
+  querySelector:function(){ return _stubEl; },
+  querySelectorAll:function(){ return {forEach:function(){}}; },
+  insertAdjacentHTML:function(){},
+  parentNode:{querySelector:function(){return _stubEl;}},
+  remove:function(){}};
 var document = {
   getElementById: function(){ return _stubEl; },
   querySelectorAll: function(){ return {forEach:function(){}}; },
   querySelector: function(){ return _stubEl; },
-  documentElement: {getAttribute:function(){return 'dark';},setAttribute:function(){}}
+  documentElement: {getAttribute:function(){return 'dark';},setAttribute:function(){}},
+  cookie: ''
 };
-var fetch = function(){ return Promise.resolve({json:function(){return Promise.resolve({})}}); };
+var fetch = function(){ return Promise.resolve({ok:true,json:function(){return Promise.resolve({})}}); };
 function clearTimeout(){}
 function setTimeout(){ return 0; }
 
@@ -60,13 +68,9 @@ process.stdout.write(JSON.stringify(results));
 
 
 def _extract_js_block():
-    """Extract the main <script> block from index.html (the second one)."""
-    with open("templates/index.html", encoding="utf-8") as f:
-        html = f.read()
-    # The app script is the last <script>...</script> block
-    idx = html.rfind("<script>")
-    end = html.rfind("</script>")
-    return html[idx + len("<script>"):end]
+    """Read the JS from templates/js/app.js directly."""
+    with open("templates/js/app.js", encoding="utf-8") as f:
+        return f.read()
 
 
 def _run_js_tests(tests):
@@ -123,14 +127,12 @@ class TestSaveLoadRoundTrip(unittest.TestCase):
         results = _run_js_tests([{
             "name": "score_persists",
             "code": """
-                score = {correct: 7, total: 12};
+                S.score = {correct: 7, total: 12};
                 saveState();
-                // Reset in-memory
-                score = {correct: 0, total: 0};
-                // Restore
+                S.score = {correct: 0, total: 0};
                 loadState();
-                if(score.correct !== 7) throw new Error('correct: ' + score.correct);
-                if(score.total !== 12) throw new Error('total: ' + score.total);
+                if(S.score.correct !== 7) throw new Error('correct: ' + S.score.correct);
+                if(S.score.total !== 12) throw new Error('total: ' + S.score.total);
             """,
         }])
         self.assertTrue(results[0]["pass"], results[0].get("error"))
@@ -140,13 +142,13 @@ class TestSaveLoadRoundTrip(unittest.TestCase):
         results = _run_js_tests([{
             "name": "scores_persist",
             "code": """
-                quizScores = {'03': 5, '17': -2, '42': 0};
+                MODES.quiz.scores = {'03': 5, '17': -2, '42': 0};
                 saveState();
-                quizScores = {};
+                MODES.quiz.scores = {};
                 loadState();
-                if(quizScores['03'] !== 5) throw new Error('03: ' + quizScores['03']);
-                if(quizScores['17'] !== -2) throw new Error('17: ' + quizScores['17']);
-                if(quizScores['42'] !== 0) throw new Error('42: ' + quizScores['42']);
+                if(MODES.quiz.scores['03'] !== 5) throw new Error('03: ' + MODES.quiz.scores['03']);
+                if(MODES.quiz.scores['17'] !== -2) throw new Error('17: ' + MODES.quiz.scores['17']);
+                if(MODES.quiz.scores['42'] !== 0) throw new Error('42: ' + MODES.quiz.scores['42']);
             """,
         }])
         self.assertTrue(results[0]["pass"], results[0].get("error"))
@@ -156,12 +158,12 @@ class TestSaveLoadRoundTrip(unittest.TestCase):
         results = _run_js_tests([{
             "name": "history_persists",
             "code": """
-                quizHistory = ['03','17','42'];
+                MODES.quiz.history = ['03','17','42'];
                 saveState();
-                quizHistory = [];
+                MODES.quiz.history = [];
                 loadState();
-                if(quizHistory.length !== 3) throw new Error('length: ' + quizHistory.length);
-                if(quizHistory[2] !== '42') throw new Error('item: ' + quizHistory[2]);
+                if(MODES.quiz.history.length !== 3) throw new Error('length: ' + MODES.quiz.history.length);
+                if(MODES.quiz.history[2] !== '42') throw new Error('item: ' + MODES.quiz.history[2]);
             """,
         }])
         self.assertTrue(results[0]["pass"], results[0].get("error"))
@@ -171,28 +173,28 @@ class TestSaveLoadRoundTrip(unittest.TestCase):
         results = _run_js_tests([{
             "name": "independent_types",
             "code": """
-                quizScores = {'01': 3};
-                reverseScores = {'02': -1};
-                mixedScores = {'03': 7};
-                conScores = {'S': 2};
-                quizHistory = ['01'];
-                reverseHistory = ['02'];
-                mixedHistory = ['03'];
-                conHistory = ['S'];
+                MODES.quiz.scores = {'01': 3};
+                MODES.reverse.scores = {'02': -1};
+                MODES.mixed.scores = {'03': 7};
+                MODES.consonant.scores = {'S': 2};
+                MODES.quiz.history = ['01'];
+                MODES.reverse.history = ['02'];
+                MODES.mixed.history = ['03'];
+                MODES.consonant.history = ['S'];
                 saveState();
 
-                quizScores = {}; reverseScores = {}; mixedScores = {}; conScores = {};
-                quizHistory = []; reverseHistory = []; mixedHistory = []; conHistory = [];
+                MODES.quiz.scores = {}; MODES.reverse.scores = {}; MODES.mixed.scores = {}; MODES.consonant.scores = {};
+                MODES.quiz.history = []; MODES.reverse.history = []; MODES.mixed.history = []; MODES.consonant.history = [];
                 loadState();
 
-                if(quizScores['01'] !== 3) throw new Error('quizScores');
-                if(reverseScores['02'] !== -1) throw new Error('reverseScores');
-                if(mixedScores['03'] !== 7) throw new Error('mixedScores');
-                if(conScores['S'] !== 2) throw new Error('conScores');
-                if(quizHistory[0] !== '01') throw new Error('quizHistory');
-                if(reverseHistory[0] !== '02') throw new Error('reverseHistory');
-                if(mixedHistory[0] !== '03') throw new Error('mixedHistory');
-                if(conHistory[0] !== 'S') throw new Error('conHistory');
+                if(MODES.quiz.scores['01'] !== 3) throw new Error('quizScores');
+                if(MODES.reverse.scores['02'] !== -1) throw new Error('reverseScores');
+                if(MODES.mixed.scores['03'] !== 7) throw new Error('mixedScores');
+                if(MODES.consonant.scores['S'] !== 2) throw new Error('conScores');
+                if(MODES.quiz.history[0] !== '01') throw new Error('quizHistory');
+                if(MODES.reverse.history[0] !== '02') throw new Error('reverseHistory');
+                if(MODES.mixed.history[0] !== '03') throw new Error('mixedHistory');
+                if(MODES.consonant.history[0] !== 'S') throw new Error('conHistory');
             """,
         }])
         self.assertTrue(results[0]["pass"], results[0].get("error"))
@@ -205,12 +207,12 @@ class TestCustomWordsPersistence(unittest.TestCase):
         results = _run_js_tests([{
             "name": "customWords_round_trip",
             "code": """
-                customWords = {'03': 'myword', '42': 'hammer'};
+                S.customWords = {'03': 'myword', '42': 'hammer'};
                 saveState();
-                customWords = {};
+                S.customWords = {};
                 loadState();
-                if(customWords['03'] !== 'myword') throw new Error('03: ' + customWords['03']);
-                if(customWords['42'] !== 'hammer') throw new Error('42: ' + customWords['42']);
+                if(S.customWords['03'] !== 'myword') throw new Error('03: ' + S.customWords['03']);
+                if(S.customWords['42'] !== 'hammer') throw new Error('42: ' + S.customWords['42']);
             """,
         }])
         self.assertTrue(results[0]["pass"], results[0].get("error"))
@@ -219,7 +221,7 @@ class TestCustomWordsPersistence(unittest.TestCase):
         results = _run_js_tests([{
             "name": "customWords_in_payload",
             "code": """
-                customWords = {'10': 'dice'};
+                S.customWords = {'10': 'dice'};
                 saveState();
                 var saved = JSON.parse(localStorage.getItem('quizState'));
                 if(!saved.customWords) throw new Error('customWords missing from saved state');
@@ -232,12 +234,12 @@ class TestCustomWordsPersistence(unittest.TestCase):
         results = _run_js_tests([{
             "name": "rebuildWordlist_merges",
             "code": """
-                defaultWordlist = {'00': 'sauce', '01': 'seed', '02': 'sun'};
-                customWords = {'01': 'custom'};
+                S.defaultWordlist = {'00': 'sauce', '01': 'seed', '02': 'sun'};
+                S.customWords = {'01': 'custom'};
                 rebuildWordlist();
-                if(wordlist['00'] !== 'sauce') throw new Error('00: ' + wordlist['00']);
-                if(wordlist['01'] !== 'custom') throw new Error('01: ' + wordlist['01']);
-                if(wordlist['02'] !== 'sun') throw new Error('02: ' + wordlist['02']);
+                if(S.wordlist['00'] !== 'sauce') throw new Error('00: ' + S.wordlist['00']);
+                if(S.wordlist['01'] !== 'custom') throw new Error('01: ' + S.wordlist['01']);
+                if(S.wordlist['02'] !== 'sun') throw new Error('02: ' + S.wordlist['02']);
             """,
         }])
         self.assertTrue(results[0]["pass"], results[0].get("error"))
@@ -252,10 +254,10 @@ class TestLoadStateEdgeCases(unittest.TestCase):
             "name": "no_data",
             "code": """
                 localStorage.clear();
-                score = {correct: 5, total: 10};
+                S.score = {correct: 5, total: 10};
                 loadState();
                 // score should stay as-is when nothing stored
-                if(score.correct !== 5) throw new Error('score changed: ' + score.correct);
+                if(S.score.correct !== 5) throw new Error('score changed: ' + S.score.correct);
             """,
         }])
         self.assertTrue(results[0]["pass"], results[0].get("error"))
@@ -266,9 +268,9 @@ class TestLoadStateEdgeCases(unittest.TestCase):
             "name": "corrupt_json",
             "code": """
                 localStorage.setItem('quizState', '{broken json!!!');
-                score = {correct: 3, total: 5};
+                S.score = {correct: 3, total: 5};
                 loadState();
-                if(score.correct !== 3) throw new Error('score changed on corrupt data');
+                if(S.score.correct !== 3) throw new Error('score changed on corrupt data');
             """,
         }])
         self.assertTrue(results[0]["pass"], results[0].get("error"))
@@ -279,10 +281,10 @@ class TestLoadStateEdgeCases(unittest.TestCase):
             "name": "partial_data",
             "code": """
                 localStorage.setItem('quizState', JSON.stringify({score: {correct:1, total:2}}));
-                quizScores = {old: 99};
+                MODES.quiz.scores = {old: 99};
                 loadState();
-                if(score.correct !== 1) throw new Error('score not loaded');
-                if(Object.keys(quizScores).length !== 0) throw new Error('quizScores not defaulted');
+                if(S.score.correct !== 1) throw new Error('score not loaded');
+                if(Object.keys(MODES.quiz.scores).length !== 0) throw new Error('quizScores not defaulted');
             """,
         }])
         self.assertTrue(results[0]["pass"], results[0].get("error"))
@@ -297,10 +299,10 @@ class TestLoadStateEdgeCases(unittest.TestCase):
                     quizPool: ['01','02'],
                     quizMastered: {'03': true}
                 }));
-                score = {correct: 0, total: 0};
+                S.score = {correct: 0, total: 0};
                 loadState();
                 // Old format should be discarded, score stays at default
-                if(score.correct !== 0) throw new Error('old data loaded: ' + score.correct);
+                if(S.score.correct !== 0) throw new Error('old data loaded: ' + S.score.correct);
                 // localStorage should be cleared
                 if(localStorage.getItem('quizState') !== null)
                     throw new Error('old data not removed from localStorage');
@@ -310,11 +312,11 @@ class TestLoadStateEdgeCases(unittest.TestCase):
 
 
 class TestSaveCallSites(unittest.TestCase):
-    """Verify saveState is called from the right functions by inspecting the JS source."""
+    """Verify engine functions call saveState and wrappers delegate correctly."""
 
     @classmethod
     def setUpClass(cls):
-        with open("templates/index.html", encoding="utf-8") as f:
+        with open("templates/js/app.js", encoding="utf-8") as f:
             cls.js = f.read()
 
     def _function_body(self, name):
@@ -332,71 +334,39 @@ class TestSaveCallSites(unittest.TestCase):
             i += 1
         return self.js[brace:i]
 
-    def test_checkQuiz_calls_saveState(self):
-        self.assertIn("saveState()", self._function_body("checkQuiz"))
+    def test_checkMode_calls_saveState(self):
+        self.assertIn("saveState()", self._function_body("checkMode"))
 
-    def test_skipQuiz_calls_saveState(self):
-        self.assertIn("saveState()", self._function_body("skipQuiz"))
+    def test_skipMode_calls_saveState(self):
+        self.assertIn("saveState()", self._function_body("skipMode"))
 
-    def test_checkReverse_calls_saveState(self):
-        self.assertIn("saveState()", self._function_body("checkReverse"))
+    def test_checkMode_pushes_to_history(self):
+        self.assertIn("m.history.push(", self._function_body("checkMode"))
 
-    def test_skipReverse_calls_saveState(self):
-        self.assertIn("saveState()", self._function_body("skipReverse"))
+    def test_skipMode_pushes_to_history(self):
+        self.assertIn("m.history.push(", self._function_body("skipMode"))
 
-    def test_checkMixed_calls_saveState(self):
-        self.assertIn("saveState()", self._function_body("checkMixed"))
-
-    def test_skipMixed_calls_saveState(self):
-        self.assertIn("saveState()", self._function_body("skipMixed"))
-
-    def test_checkCon_calls_saveState(self):
-        self.assertIn("saveState()", self._function_body("checkCon"))
-
-    def test_skipCon_calls_saveState(self):
-        self.assertIn("saveState()", self._function_body("skipCon"))
+    def test_checkMode_modifies_scores(self):
+        self.assertIn("m.scores[", self._function_body("checkMode"))
 
     def test_init_calls_loadState(self):
         self.assertIn("loadState()", self._function_body("init"))
 
-    def test_check_functions_push_to_history(self):
-        """All check* functions must push to their respective history array."""
-        for func, hist in [
-            ("checkQuiz", "quizHistory"),
-            ("checkReverse", "reverseHistory"),
-            ("checkMixed", "mixedHistory"),
-            ("checkCon", "conHistory"),
+    def test_wrapper_functions_delegate(self):
+        """All check/skip wrappers delegate to the generic engine."""
+        for wrapper, engine, mode in [
+            ("checkQuiz", "checkMode", "MODES.quiz"),
+            ("skipQuiz", "skipMode", "MODES.quiz"),
+            ("checkReverse", "checkMode", "MODES.reverse"),
+            ("skipReverse", "skipMode", "MODES.reverse"),
+            ("checkMixed", "checkMode", "MODES.mixed"),
+            ("skipMixed", "skipMode", "MODES.mixed"),
+            ("checkCon", "checkMode", "MODES.consonant"),
+            ("skipCon", "skipMode", "MODES.consonant"),
         ]:
-            with self.subTest(func=func):
-                body = self._function_body(func)
-                self.assertIn(f"{hist}.push(", body,
-                              f"{func} must push to {hist}")
-
-    def test_skip_functions_push_to_history(self):
-        """All skip* functions must push to their respective history array."""
-        for func, hist in [
-            ("skipQuiz", "quizHistory"),
-            ("skipReverse", "reverseHistory"),
-            ("skipMixed", "mixedHistory"),
-            ("skipCon", "conHistory"),
-        ]:
-            with self.subTest(func=func):
-                body = self._function_body(func)
-                self.assertIn(f"{hist}.push(", body,
-                              f"{func} must push to {hist}")
-
-    def test_check_functions_modify_scores(self):
-        """All check* functions must modify their respective scores object."""
-        for func, scores in [
-            ("checkQuiz", "quizScores"),
-            ("checkReverse", "reverseScores"),
-            ("checkMixed", "mixedScores"),
-            ("checkCon", "conScores"),
-        ]:
-            with self.subTest(func=func):
-                body = self._function_body(func)
-                self.assertIn(f"{scores}[", body,
-                              f"{func} must modify {scores}")
+            with self.subTest(wrapper=wrapper):
+                body = self._function_body(wrapper)
+                self.assertIn(engine + "(" + mode + ")", body)
 
 
 class TestJSPickNext(unittest.TestCase):
