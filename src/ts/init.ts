@@ -1,10 +1,9 @@
 import { appState, rebuildWordlist } from './state';
 import { getCookie, loadState, applyState, saveState } from './persistence';
 import { toggleTheme, updateToggleIcon } from './theme';
-import { startQuiz, checkQuiz, skipQuiz, startReverse, checkReverse, skipReverse,
-         startMixed, checkMixed, skipMixed, startCon, checkCon, skipCon } from './quiz';
+import { checkQuiz, skipQuiz, checkReverse, skipReverse,
+         checkMixed, skipMixed, checkCon, skipCon } from './quiz';
 import { renderGrid, renderRef, showSection, showQuizNav, updateScore, updateMasteryColors, startGridQuiz, checkGridQuiz } from './ui';
-import { renderProfile } from './profile';
 import { ServerState } from './types';
 
 function updateAuthUI(username: string | null): void {

@@ -95,8 +95,6 @@ for (const name of Object.keys(MODES) as (keyof AllModes)[]) {
 }
 
 export function rebuildWordlist(): void {
-  appState.wordlist = {};
-  for (const key of Object.keys(appState.defaultWordlist)) appState.wordlist[key] = appState.defaultWordlist[key];
-  for (const key of Object.keys(appState.customWords)) appState.wordlist[key] = appState.customWords[key];
+  appState.wordlist = { ...appState.defaultWordlist, ...appState.customWords };
   appState.keys = Object.keys(appState.wordlist).sort();
 }

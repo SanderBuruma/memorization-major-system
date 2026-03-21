@@ -2,7 +2,7 @@ import { appState, MODES } from './state';
 
 export function renderProfile(): void {
   const el = document.getElementById('profile-content')!;
-  const allKeys = appState.keys.length ? appState.keys : [];
+  const allKeys = appState.keys;
   const combined = allKeys.map((key) =>
     (MODES.quiz.scores[key] ?? 0) + (MODES.reverse.scores[key] ?? 0) + (MODES.mixed.scores[key] ?? 0)
   );

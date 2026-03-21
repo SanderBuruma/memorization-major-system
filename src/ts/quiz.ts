@@ -4,7 +4,7 @@ import { saveState } from './persistence';
 import { updateScore } from './ui';
 
 function pickNext(scores: Record<string, number>, history: string[], allKeys: string[]): string {
-  let eligible = allKeys.filter((key) => history.indexOf(key) === -1);
+  let eligible = allKeys.filter((key) => !history.includes(key));
   if (eligible.length === 0) eligible = allKeys.slice();
   let minScore = Infinity;
   for (const key of eligible) {

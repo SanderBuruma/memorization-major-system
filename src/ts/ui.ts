@@ -73,7 +73,7 @@ export function showSection(name: string): void {
   document.querySelectorAll('.section').forEach((section) => { section.classList.remove('active'); });
   document.getElementById(`section-${name}`)!.classList.add('active');
   document.querySelectorAll('.topbar-nav button').forEach((btn) => { btn.classList.remove('active'); });
-  const isQuiz = quizSections.indexOf(name) !== -1;
+  const isQuiz = quizSections.includes(name);
   if (isQuiz) {
     document.querySelector('.topbar-nav [data-section="quiz-nav"]')!.classList.add('active');
     document.getElementById('subnav')!.classList.add('visible');
@@ -85,12 +85,11 @@ export function showSection(name: string): void {
   document.querySelectorAll('.subnav button').forEach((btn) => { btn.classList.remove('active'); });
   const sub = document.querySelector(`.subnav [data-section="${name}"]`);
   if (sub) sub.classList.add('active');
-  if (name === 'quiz') startQuiz();
-  if (name === 'reverse') startReverse();
-  if (name === 'mixed') startMixed();
-  if (name === 'consonant') startCon();
-  if (name === 'gridquiz') startGridQuiz();
-  if (name === 'profile') renderProfile();
+  const sectionStarters: Record<string, () => void> = {
+    quiz: startQuiz, reverse: startReverse, mixed: startMixed,
+    consonant: startCon, gridquiz: startGridQuiz, profile: renderProfile,
+  };
+  sectionStarters[name]?.();
 }
 
 export function showQuizNav(): void {
@@ -131,7 +130,7 @@ document.getElementById('translate-input')!.addEventListener('input', function (
   out.innerHTML = '';
   if (!raw) return;
   for (let i = 0; i < raw.length; i += 2) {
-    const chunk = raw.substr(i, 2);
+    const chunk = raw.substring(i, i + 2);
     const chip = document.createElement('div');
     if (chunk.length === 2) {
       const word = appState.wordlist[chunk] ?? '???';
@@ -208,17 +207,11 @@ export function checkGridQuiz(): void {
     const existing = cell.querySelector('.gq-answer');
     if (existing) existing.remove();
 
-    if (!val) {
-      cell.classList.add('gq-skipped');
-      const ans = document.createElement('div');
-      ans.className = 'gq-answer';
-      ans.textContent = expected;
-      cell.appendChild(ans);
-    } else if (val === expected) {
+    if (val === expected) {
       cell.classList.add('gq-correct');
       correct++;
     } else {
-      cell.classList.add('gq-wrong');
+      cell.classList.add(val ? 'gq-wrong' : 'gq-skipped');
       const ans = document.createElement('div');
       ans.className = 'gq-answer';
       ans.textContent = expected;

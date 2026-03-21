@@ -1,9 +1,8 @@
 import json
-from pathlib import Path
 
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
-from django.http import HttpResponse, JsonResponse
+from django.http import JsonResponse
 from django.shortcuts import redirect, render
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.views.decorators.http import require_GET, require_POST
@@ -14,7 +13,6 @@ from trainer.validator import DIGIT_TO_SOUNDS
 from .models import QuizState
 
 _wordlist = load_or_generate_wordlist()
-_mapping = DIGIT_TO_SOUNDS
 
 
 def get_client_ip(request):
@@ -45,7 +43,7 @@ def wordlist_view(request):
 
 @require_GET
 def mapping_view(request):
-    return JsonResponse(_mapping)
+    return JsonResponse(DIGIT_TO_SOUNDS)
 
 
 _FIELD_MAP = {
