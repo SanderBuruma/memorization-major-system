@@ -44,4 +44,19 @@
     padding: 8px 12px;
     min-width: auto;
   }
+
+  &.no-encode {
+    opacity: .5;
+
+    .number {
+      color: var(--text-muted);
+    }
+  }
+}
+
+.translate-heading {
+  margin: 0 0 12px;
+  font-size: 1em;
+  font-weight: 600;
+  color: var(--text-secondary);
 }

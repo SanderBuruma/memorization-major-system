@@ -1,4 +1,5 @@
 import json
+import re
 
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
@@ -7,12 +8,20 @@ from django.shortcuts import redirect, render
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.views.decorators.http import require_GET, require_POST
 
-from trainer.generator import load_or_generate_wordlist
-from trainer.validator import DIGIT_TO_SOUNDS
+from trainer.generator import load_or_generate_wordlist, get_concrete_nouns, build_candidate_map
+from trainer.validator import DIGIT_TO_SOUNDS, word_to_digits
 
 from .models import QuizState
 
 _wordlist = load_or_generate_wordlist()
+_candidate_map: dict | None = None
+
+
+def _get_candidate_map():
+    global _candidate_map
+    if _candidate_map is None:
+        _candidate_map = build_candidate_map(get_concrete_nouns())
+    return _candidate_map
 
 
 def get_client_ip(request):
@@ -46,6 +55,23 @@ def mapping_view(request):
     return JsonResponse(DIGIT_TO_SOUNDS)
 
 
+@require_POST
+def encode_view(request):
+    try:
+        data = json.loads(request.body)
+    except (json.JSONDecodeError, ValueError):
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+    text = data.get('text', '')
+    if not isinstance(text, str):
+        return JsonResponse({'error': 'text must be a string'}, status=400)
+    words = re.findall(r"[a-zA-Z]+", text)
+    result = []
+    for w in words:
+        digits = word_to_digits(w)
+        result.append({'word': w.lower(), 'digits': digits})
+    return JsonResponse(result, safe=False)
+
+
 _FIELD_MAP = {
     'quizScores': ('quiz_scores', dict),
     'quizHistory': ('quiz_history', list),
@@ -57,7 +83,7 @@ _FIELD_MAP = {
     'conHistory': ('con_history', list),
     'customWords': ('custom_words', dict),
 }
-_STATE_KEYS = set(_FIELD_MAP) | {'score', 'theme'}
+_STATE_KEYS = set(_FIELD_MAP) | {'score', 'theme', 'tutorialSeen', 'dyslexiaFont'}
 
 
 def state_view(request):
@@ -68,6 +94,8 @@ def state_view(request):
         response.update({
             'score': {'correct': state.score_correct, 'total': state.score_total},
             'theme': state.theme,
+            'tutorialSeen': state.tutorial_seen,
+            'dyslexiaFont': state.dyslexia_font,
             'user': request.user.username if request.user.is_authenticated else None,
             'updatedAt': state.updated_at.isoformat() if state.updated_at else None,
         })
@@ -96,11 +124,23 @@ def state_view(request):
                 state.score_total = total
         if 'theme' in data:
             state.theme = data['theme']
+        if 'tutorialSeen' in data and isinstance(data['tutorialSeen'], bool):
+            state.tutorial_seen = data['tutorialSeen']
+        if 'dyslexiaFont' in data and isinstance(data['dyslexiaFont'], bool):
+            state.dyslexia_font = data['dyslexiaFont']
 
         state.save()
         return JsonResponse({'ok': True})
 
     return JsonResponse({'error': 'Method not allowed'}, status=405)
+
+
+@require_GET
+def candidates_view(request, digits):
+    if not (len(digits) == 2 and digits.isdigit()):
+        return JsonResponse({'error': 'Invalid digits'}, status=400)
+    candidates = _get_candidate_map().get(digits, [])
+    return JsonResponse(sorted(candidates, key=lambda w: (len(w), w)), safe=False)
 
 
 def login_view(request):

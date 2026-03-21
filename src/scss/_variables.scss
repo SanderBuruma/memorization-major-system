@@ -58,3 +58,55 @@ $mobile-breakpoint: 700px;
   --bg-mastery-3: #e8f5e9; --color-mastery-3: #558b2f;
   --bg-mastery-4: #c8e6c9; --color-mastery-4: #2e7d32;
 }
+
+[data-theme="oled"] {
+  --bg-page: #000;
+  --text-primary: #fff;
+  --text-secondary: #aaa;
+  --text-muted: #888;
+  --color-primary: #4a9af5;
+  --color-primary-hover: #3a8ae5;
+  --color-on-primary: #000;
+  --bg-surface: #0a0a0a;
+  --border-color: #1a1a1a;
+  --border-input: #2a2a2a;
+  --bg-nav-hover: #111;
+  --color-skip: #666;
+  --color-skip-hover: #999;
+  --bg-success: #001a00;
+  --color-success: #66bb6a;
+  --bg-error: #1a0000;
+  --color-error: #ef5350;
+  --bg-stripe: #060606;
+  --shadow-hover: rgba(255,255,255,.05);
+  --bg-mastery-0: #1a0000; --color-mastery-0: #ef5350;
+  --bg-mastery-1: #1a1000; --color-mastery-1: #e0a050;
+  --bg-mastery-3: #001a00; --color-mastery-3: #8cbf60;
+  --bg-mastery-4: #001a0a; --color-mastery-4: #4cda6a;
+}
+
+[data-theme="high-contrast"] {
+  --bg-page: #000;
+  --text-primary: #ffff00;
+  --text-secondary: #fff;
+  --text-muted: #fff;
+  --color-primary: #00ffff;
+  --color-primary-hover: #00cccc;
+  --color-on-primary: #000;
+  --bg-surface: #111;
+  --border-color: #fff;
+  --border-input: #fff;
+  --bg-nav-hover: #222;
+  --color-skip: #ccc;
+  --color-skip-hover: #fff;
+  --bg-success: #001a00;
+  --color-success: #00ff00;
+  --bg-error: #1a0000;
+  --color-error: #ff3333;
+  --bg-stripe: #0a0a0a;
+  --shadow-hover: rgba(255,255,255,.15);
+  --bg-mastery-0: #1a0000; --color-mastery-0: #ff3333;
+  --bg-mastery-1: #1a1000; --color-mastery-1: #ffaa00;
+  --bg-mastery-3: #001a00; --color-mastery-3: #00ff00;
+  --bg-mastery-4: #001a0a; --color-mastery-4: #00ff66;
+}

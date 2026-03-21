@@ -1,9 +1,9 @@
 import { appState, rebuildWordlist } from './state';
 import { getCookie, loadState, applyState, saveState } from './persistence';
-import { toggleTheme, updateToggleIcon } from './theme';
+import { toggleTheme, setTheme, updateToggleIcon } from './theme';
 import { checkQuiz, skipQuiz, checkReverse, skipReverse,
          checkMixed, skipMixed, checkCon, skipCon } from './quiz';
-import { renderGrid, renderRef, showSection, showQuizNav, updateScore, updateMasteryColors, startGridQuiz, checkGridQuiz, toggleTimedQuiz } from './ui';
+import { renderGrid, renderRef, showSection, showQuizNav, updateScore, updateMasteryColors, startGridQuiz, checkGridQuiz, toggleTimedQuiz, toggleDyslexiaFont, nextTutorialStep, prevTutorialStep } from './ui';
 import { ServerState } from './types';
 
 function updateAuthUI(username: string | null): void {
@@ -36,12 +36,17 @@ async function init(): Promise<void> {
   }
 
   loadState();
+  if (appState.dyslexiaFont) document.body.classList.add('dyslexia-font');
   rebuildWordlist();
   buildConMap();
+  updateToggleIcon();
+  const themeSelect = document.getElementById('setting-theme') as HTMLSelectElement | null;
+  if (themeSelect) themeSelect.value = document.documentElement.getAttribute('data-theme') ?? 'dark';
   renderGrid();
   renderRef();
   updateScore();
   updateMasteryColors();
+  if (!appState.tutorialSeen) showSection('tutorial');
 
   try {
     const results = await Promise.all([
@@ -78,10 +83,11 @@ async function init(): Promise<void> {
 
 /* Expose globals for HTML onclick handlers */
 Object.assign(window, {
-  showSection, showQuizNav, toggleTheme,
+  showSection, showQuizNav, toggleTheme, setTheme,
   checkQuiz, skipQuiz, checkReverse, skipReverse,
   checkMixed, skipMixed, checkCon, skipCon,
-  startGridQuiz, checkGridQuiz, toggleTimedQuiz,
+  startGridQuiz, checkGridQuiz, toggleTimedQuiz, toggleDyslexiaFont,
+  nextTutorialStep, prevTutorialStep,
 });
 
 /* Boot */
