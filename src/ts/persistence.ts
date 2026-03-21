@@ -40,7 +40,7 @@ export function loadState(): void {
 }
 
 export function applyState(state: Record<string, unknown>): void {
-  STATE_FIELDS.forEach((field) => { field.set(state[field.key]); });
+  STATE_FIELDS.forEach((field) => { if (field.key in state) field.set(state[field.key]); });
   rebuildWordlist();
   saveState();
   renderGrid();
