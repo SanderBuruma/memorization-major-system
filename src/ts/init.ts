@@ -6,11 +6,17 @@ import { checkQuiz, skipQuiz, checkReverse, skipReverse,
 import { renderGrid, renderRef, showSection, showQuizNav, updateScore, updateMasteryColors, startGridQuiz, checkGridQuiz, toggleTimedQuiz, toggleDyslexiaFont, nextTutorialStep, prevTutorialStep } from './ui';
 import { ServerState } from './types';
 
+function escapeHTML(s: string): string {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
 function updateAuthUI(username: string | null): void {
   const el = document.getElementById('auth-status');
   if (!el) return;
   if (username) {
-    el.innerHTML = `<button class="arrow-pill arrow-pill-left" style="font-weight:700;color:var(--text-primary);font-size:1em;font-family:inherit;cursor:pointer" onclick="showSection('profile')">${username}</button> <form method="post" action="/logout/" style="display:inline"><input type="hidden" name="csrfmiddlewaretoken" value="${getCookie('csrftoken')}"><button type="submit" class="auth-link">logout</button></form>`;
+    const safe = escapeHTML(username);
+    const token = escapeHTML(getCookie('csrftoken'));
+    el.innerHTML = `<button class="arrow-pill arrow-pill-left" style="font-weight:700;color:var(--text-primary);font-size:1em;font-family:inherit;cursor:pointer" onclick="showSection('profile')">${safe}</button> <form method="post" action="/logout/" style="display:inline"><input type="hidden" name="csrfmiddlewaretoken" value="${token}"><button type="submit" class="auth-link">logout</button></form>`;
   } else {
     el.innerHTML = '<a href="/login/" class="auth-link">login</a>';
   }
