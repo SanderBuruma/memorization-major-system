@@ -11,7 +11,7 @@
 <body>
 <div class="topbar">
   <span class="topbar-title">Major System</span>
-  <div class="topbar-nav">
+  <div class="topbar-nav" role="navigation" aria-label="Main navigation">
     <button class="arrow-pill arrow-pill-center active" data-section="grid" onclick="showSection('grid')">Grid</button>
     <button class="arrow-pill arrow-pill-center" data-section="quiz-nav" onclick="showQuizNav()">Quiz</button>
     <button class="arrow-pill arrow-pill-center" data-section="ref" onclick="showSection('ref')">Reference</button>
@@ -23,8 +23,8 @@
     <button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle theme" id="theme-toggle"></button>
   </div>
 </div>
-<div class="container">
-  <div class="subnav" id="subnav">
+<div class="container" role="main">
+  <div class="subnav" id="subnav" role="navigation" aria-label="Quiz modes">
     <button data-section="quiz" onclick="showSection('quiz')"># &rarr; Word</button>
     <button data-section="reverse" onclick="showSection('reverse')">Word &rarr; #</button>
     <button data-section="mixed" onclick="showSection('mixed')">Mixed</button>
@@ -42,12 +42,12 @@
     <div class="quiz-area">
       <div class="quiz-prompt" id="quiz-prompt">--</div>
       <input class="quiz-input" id="quiz-input" placeholder="type the noun..."
-             autocomplete="off" spellcheck="false">
+             autocomplete="off" spellcheck="false" aria-label="Type the word for this number">
       <div>
-        <button class="quiz-btn" id="quiz-submit" onclick="checkQuiz()">Submit</button>
-        <button class="quiz-btn skip" onclick="skipQuiz()">Skip</button>
+        <button class="quiz-btn" id="quiz-submit" onclick="checkQuiz()" aria-label="Submit answer">Submit</button>
+        <button class="quiz-btn skip" onclick="skipQuiz()" aria-label="Skip question">Skip</button>
       </div>
-      <div class="feedback empty" id="quiz-feedback"></div>
+      <div class="feedback empty" id="quiz-feedback" aria-live="polite"></div>
     </div>
   </div>
 
@@ -56,12 +56,12 @@
     <div class="quiz-area">
       <div class="quiz-prompt" id="rev-prompt">--</div>
       <input class="quiz-input" id="rev-input" placeholder="type the number..."
-             autocomplete="off" spellcheck="false" maxlength="2">
+             autocomplete="off" spellcheck="false" maxlength="2" aria-label="Type the number for this word">
       <div>
-        <button class="quiz-btn" id="rev-submit" onclick="checkReverse()">Submit</button>
-        <button class="quiz-btn skip" onclick="skipReverse()">Skip</button>
+        <button class="quiz-btn" id="rev-submit" onclick="checkReverse()" aria-label="Submit answer">Submit</button>
+        <button class="quiz-btn skip" onclick="skipReverse()" aria-label="Skip question">Skip</button>
       </div>
-      <div class="feedback empty" id="rev-feedback"></div>
+      <div class="feedback empty" id="rev-feedback" aria-live="polite"></div>
     </div>
   </div>
 
@@ -70,12 +70,12 @@
     <div class="quiz-area">
       <div class="quiz-prompt" id="mix-prompt">--</div>
       <input class="quiz-input" id="mix-input" placeholder="type your answer..."
-             autocomplete="off" spellcheck="false">
+             autocomplete="off" spellcheck="false" aria-label="Type your answer">
       <div>
-        <button class="quiz-btn" id="mix-submit" onclick="checkMixed()">Submit</button>
-        <button class="quiz-btn skip" onclick="skipMixed()">Skip</button>
+        <button class="quiz-btn" id="mix-submit" onclick="checkMixed()" aria-label="Submit answer">Submit</button>
+        <button class="quiz-btn skip" onclick="skipMixed()" aria-label="Skip question">Skip</button>
       </div>
-      <div class="feedback empty" id="mix-feedback"></div>
+      <div class="feedback empty" id="mix-feedback" aria-live="polite"></div>
     </div>
   </div>
 
@@ -84,12 +84,12 @@
     <div class="quiz-area">
       <div class="quiz-prompt" id="con-prompt">--</div>
       <input class="quiz-input" id="con-input" placeholder="type the digit..."
-             autocomplete="off" spellcheck="false" maxlength="1">
+             autocomplete="off" spellcheck="false" maxlength="1" aria-label="Type the digit for this sound">
       <div>
-        <button class="quiz-btn" id="con-submit" onclick="checkCon()">Submit</button>
-        <button class="quiz-btn skip" onclick="skipCon()">Skip</button>
+        <button class="quiz-btn" id="con-submit" onclick="checkCon()" aria-label="Submit answer">Submit</button>
+        <button class="quiz-btn skip" onclick="skipCon()" aria-label="Skip question">Skip</button>
       </div>
-      <div class="feedback empty" id="con-feedback"></div>
+      <div class="feedback empty" id="con-feedback" aria-live="polite"></div>
     </div>
   </div>
 
@@ -98,10 +98,10 @@
     <div class="gridquiz-controls">
       <button class="quiz-btn" id="gridquiz-check" onclick="checkGridQuiz()">Check All</button>
       <button class="quiz-btn skip" id="gridquiz-reset" onclick="startGridQuiz()">Reset</button>
-      <span id="gridquiz-timer" class="gridquiz-timer"></span>
+      <span id="gridquiz-timer" class="gridquiz-timer" role="status"></span>
     </div>
     <div id="gridquiz-grid" class="grid"></div>
-    <div id="gridquiz-result" class="gridquiz-result"></div>
+    <div id="gridquiz-result" class="gridquiz-result" role="status"></div>
   </div>
 
   <!-- REFERENCE ------------------------------------------------------ -->
@@ -118,7 +118,7 @@
   <div id="section-translate" class="section">
     <div class="translate-area">
       <input class="quiz-input" id="translate-input" placeholder="type numbers..."
-             autocomplete="off" spellcheck="false" style="width:100%;max-width:400px;font-size:1.2em">
+             autocomplete="off" spellcheck="false" style="width:100%;max-width:400px;font-size:1.2em" aria-label="Type numbers to translate">
       <div id="translate-output" class="translate-output"></div>
     </div>
   </div>
@@ -142,7 +142,7 @@
 
   <!-- SCORE ---------------------------------------------------------- -->
   <div class="score-bar" id="score-bar">
-    Score: <strong id="score-text">0 / 0 (0%)</strong>
+    Score: <strong id="score-text" aria-live="polite">0 / 0 (0%)</strong>
   </div>
 </div>
 
