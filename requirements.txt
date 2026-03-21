@@ -3,3 +3,4 @@ nltk>=3.8
 setuptools
 django>=5.1
 gunicorn
+mpmath>=1.3
