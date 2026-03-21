@@ -9,65 +9,77 @@ function activityLevel(count: number): number {
 }
 
 function renderHeatmap(): string {
+  type DayCell = { key: string; count: number } | null;
+  type Week = DayCell[]; // length 7: index 0=Mon .. 6=Sun
+  type MonthGroup = { label: string; weeks: Week[] };
+
   const today = new Date();
   const dayOfWeek = (today.getDay() + 6) % 7; // 0=Mon ... 6=Sun
   const totalDays = 12 * 7 + dayOfWeek + 1;
   const startDate = new Date(today);
   startDate.setDate(today.getDate() - totalDays + 1);
 
-  // Build weeks array: each week is an array of 7 day slots (Mon=0 .. Sun=6)
-  const weeks: ({ key: string; count: number } | null)[][] = [];
-  let currentWeek: ({ key: string; count: number } | null)[] = [];
+  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const pad7 = (w: DayCell[]) => { while (w.length < 7) w.push(null); return w; };
+
+  // Group days into month groups, splitting weeks at month boundaries
+  const months: MonthGroup[] = [];
+  let curMonthIdx = -1, curYear = -1;
+  let curWeek: DayCell[] = [];
+  let curWeeks: Week[] = [];
+
   const d = new Date(startDate);
   for (let i = 0; i < totalDays; i++) {
     const key = d.toISOString().slice(0, 10);
     const dow = (d.getDay() + 6) % 7;
-    if (dow === 0 && currentWeek.length > 0) {
-      while (currentWeek.length < 7) currentWeek.push(null);
-      weeks.push(currentWeek);
-      currentWeek = [];
+    const m = d.getMonth();
+    const y = d.getFullYear();
+
+    if (m !== curMonthIdx || y !== curYear) {
+      // Month boundary — close current week and month
+      if (curWeek.length > 0) curWeeks.push(pad7(curWeek));
+      if (curWeeks.length > 0) months.push({ label: monthNames[curMonthIdx], weeks: curWeeks });
+      curWeeks = [];
+      curWeek = [];
+      for (let p = 0; p < dow; p++) curWeek.push(null); // pad start of partial week
+      curMonthIdx = m;
+      curYear = y;
+    } else if (dow === 0 && curWeek.length > 0) {
+      // Monday within same month — close current week
+      curWeeks.push(pad7(curWeek));
+      curWeek = [];
     }
-    currentWeek.push({ key, count: appState.activityLog[key] ?? 0 });
+
+    curWeek.push({ key, count: appState.activityLog[key] ?? 0 });
     d.setDate(d.getDate() + 1);
   }
-  if (currentWeek.length > 0) {
-    while (currentWeek.length < 7) currentWeek.push(null);
-    weeks.push(currentWeek);
-  }
+  if (curWeek.length > 0) curWeeks.push(pad7(curWeek));
+  if (curWeeks.length > 0) months.push({ label: monthNames[curMonthIdx], weeks: curWeeks });
 
-  // Month labels row — one <td> per week, label on first week of each month
-  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  let monthRow = '<tr><td></td>'; // empty cell above day labels
-  let lastMonth = -1;
-  for (const week of weeks) {
-    const firstDay = week.find(d => d !== null);
-    if (firstDay) {
-      const month = parseInt(firstDay.key.slice(5, 7)) - 1;
-      if (month !== lastMonth) {
-        monthRow += `<td class="hm-month">${monthNames[month]}</td>`;
-        lastMonth = month;
-      } else {
-        monthRow += '<td></td>';
-      }
-    } else {
-      monthRow += '<td></td>';
-    }
+  // Month labels row with gaps between months
+  let monthRow = '<tr><td></td>';
+  for (let mi = 0; mi < months.length; mi++) {
+    if (mi > 0) monthRow += '<td class="hm-gap"></td>';
+    monthRow += `<td class="hm-month" colspan="${months[mi].weeks.length}">${months[mi].label}</td>`;
   }
   monthRow += '</tr>';
 
-  // Day rows — 7 rows (Mon-Sun), with day label in first column
+  // Day rows — 7 rows (Mon-Sun), with gap columns between months
   const dayLabels = ['Mon', '', 'Wed', '', 'Fri', '', ''];
   let bodyRows = '';
   for (let row = 0; row < 7; row++) {
     bodyRows += `<tr><td class="hm-day">${dayLabels[row]}</td>`;
-    for (const week of weeks) {
-      const day = week[row];
-      if (day) {
-        const level = activityLevel(day.count);
-        const tooltip = `${day.key}: ${day.count} answer${day.count !== 1 ? 's' : ''}`;
-        bodyRows += `<td><div class="hm-cell activity-${level}" title="${tooltip}"></div></td>`;
-      } else {
-        bodyRows += '<td></td>';
+    for (let mi = 0; mi < months.length; mi++) {
+      if (mi > 0) bodyRows += '<td class="hm-gap"></td>';
+      for (const week of months[mi].weeks) {
+        const day = week[row];
+        if (day) {
+          const level = activityLevel(day.count);
+          const tooltip = `${day.key}: ${day.count} answer${day.count !== 1 ? 's' : ''}`;
+          bodyRows += `<td><div class="hm-cell activity-${level}" title="${tooltip}"></div></td>`;
+        } else {
+          bodyRows += '<td></td>';
+        }
       }
     }
     bodyRows += '</tr>';

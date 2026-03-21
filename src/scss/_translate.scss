@@ -60,3 +60,31 @@
   font-weight: 600;
   color: var(--text-secondary);
 }
+
+.constant-btn-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: center;
+  margin-bottom: 12px;
+}
+
+.constant-btn {
+  padding: 6px 10px;
+  font-size: .9em;
+  font-weight: 600;
+  background: var(--bg-surface);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: $border-radius-sm;
+  cursor: pointer;
+  transition: all $transition-speed;
+  min-width: 36px;
+  text-align: center;
+
+  &:hover {
+    background: var(--bg-nav-hover);
+    color: var(--text-primary);
+    border-color: var(--color-primary);
+  }
+}

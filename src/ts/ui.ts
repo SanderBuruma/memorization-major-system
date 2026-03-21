@@ -6,6 +6,7 @@ import { renderProfile } from './profile';
 import { startTutorial } from './tutorial';
 import { escapeHTML } from './utils';
 import { QuizItem, QuizMode } from './types';
+import { MATH_CONSTANTS } from './constants';
 
 /* --- Autocomplete state --- */
 const candidateCache: Record<string, string[]> = {};
@@ -288,6 +289,24 @@ document.getElementById('reverse-translate-input')!.addEventListener('input', fu
     } catch {}
   }, 300);
 });
+
+/* Constant buttons for Translate */
+export function renderConstantButtons(): void {
+  const container = document.getElementById('constant-buttons');
+  if (!container) return;
+  const input = document.getElementById('translate-input') as HTMLInputElement;
+  for (const { symbol, name, digits } of MATH_CONSTANTS) {
+    const btn = document.createElement('button');
+    btn.className = 'constant-btn';
+    btn.textContent = symbol;
+    btn.title = name;
+    btn.addEventListener('click', () => {
+      input.value = digits;
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    container.appendChild(btn);
+  }
+}
 
 /* Grid Quiz */
 let gqTimerInterval: ReturnType<typeof setInterval> | null = null;
