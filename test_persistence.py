@@ -67,10 +67,23 @@ process.stdout.write(JSON.stringify(results));
 """
 
 
+_JS_FILES = [
+    "templates/js/state.js",
+    "templates/js/persistence.js",
+    "templates/js/theme.js",
+    "templates/js/quiz.js",
+    "templates/js/ui.js",
+    "templates/js/profile.js",
+    "templates/js/init.js",
+]
+
 def _extract_js_block():
-    """Read the JS from templates/js/app.js directly."""
-    with open("templates/js/app.js", encoding="utf-8") as f:
-        return f.read()
+    """Concatenate all JS files in include order."""
+    parts = []
+    for path in _JS_FILES:
+        with open(path, encoding="utf-8") as f:
+            parts.append(f.read())
+    return "\n".join(parts)
 
 
 def _run_js_tests(tests):
@@ -316,8 +329,7 @@ class TestSaveCallSites(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        with open("templates/js/app.js", encoding="utf-8") as f:
-            cls.js = f.read()
+        cls.js = _extract_js_block()
 
     def _function_body(self, name):
         """Extract the body of a JS function by name."""

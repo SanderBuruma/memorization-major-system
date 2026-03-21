@@ -6,7 +6,7 @@
 - Section switching via `showSection(name)` — add HTML as `<div id="section-{name}" class="section">`, render content in JS
 
 ## JS Structure
-- All JS lives in `templates/js/`, included via `{% include "js/app.js" %}` (same pattern as `css/theme.css`)
+- All JS lives in `templates/js/`, included via `{% include %}` in order: state → persistence → theme → quiz → ui → profile → init
 - State consolidated into `S` object (wordlist, mapping, score, etc.) and `MODES` configs (per-quiz-mode scores, history, DOM IDs)
 - Quiz modes share a generic engine (`startMode`/`checkMode`/`skipMode`); mode-specific behavior lives in MODES config functions
 - Persistence uses `STATE_FIELDS` manifest — add new persisted fields there, not in saveState/loadState individually
