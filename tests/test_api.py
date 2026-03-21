@@ -158,6 +158,19 @@ class TestStateAPI(TestCase):
         resp = self.client.get('/api/state')
         self.assertEqual(resp.json()['theme'], 'light')
 
+    def test_all_theme_values_persist(self):
+        """All 4 theme options (dark, light, oled, high-contrast) round-trip via API."""
+        for theme in ('dark', 'light', 'oled', 'high-contrast'):
+            with self.subTest(theme=theme):
+                payload = {'theme': theme}
+                self.client.post(
+                    '/api/state',
+                    data=json.dumps(payload),
+                    content_type='application/json',
+                )
+                resp = self.client.get('/api/state')
+                self.assertEqual(resp.json()['theme'], theme)
+
 
 class TestCustomWords(TestCase):
     def test_custom_words_default_empty(self):

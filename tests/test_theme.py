@@ -1,7 +1,8 @@
-"""Unit tests verifying dark theme is dark and light theme is light.
+"""Unit tests verifying all four themes have correct luminance and contrast.
 
 Parses CSS custom properties from src/scss/_variables.scss and checks
 luminance to ensure backgrounds and text colors match their theme.
+Tests OLED for near-zero backgrounds and high-contrast for WCAG AAA ratios.
 
 Run:
     python -m pytest test_theme.py
@@ -162,23 +163,145 @@ class TestLightTheme(unittest.TestCase):
             f"--color-on-primary vs --color-primary contrast ratio {ratio:.1f} < 3.0")
 
 
+class TestOLEDTheme(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        css = CSS_PATH.read_text()
+        cls.vars = extract_css_vars(css, '[data-theme="oled"]')
+        assert cls.vars, '[data-theme="oled"] block has no variables'
+
+    def test_page_background_is_pure_black(self):
+        """OLED theme must use #000 for --bg-page to save power."""
+        r, g, b = get_rgb(self.vars, "--bg-page")
+        self.assertEqual((r, g, b), (0, 0, 0),
+            f"--bg-page={self.vars['--bg-page']} is not pure black")
+
+    def test_backgrounds_are_very_dark(self):
+        """All backgrounds near zero luminance for OLED."""
+        for var in BG_VARS:
+            with self.subTest(var=var):
+                r, g, b = get_rgb(self.vars, var)
+                lum = relative_luminance(r, g, b)
+                self.assertLess(lum, 0.05,
+                    f"{var}={self.vars[var]} luminance {lum:.3f} too bright for OLED theme")
+
+    def test_text_is_light(self):
+        for var in TEXT_VARS:
+            with self.subTest(var=var):
+                r, g, b = get_rgb(self.vars, var)
+                lum = relative_luminance(r, g, b)
+                self.assertGreater(lum, DARK_TEXT_MIN_LUM,
+                    f"{var}={self.vars[var]} luminance {lum:.3f} too dim for OLED theme text")
+
+    def test_on_primary_contrasts_primary(self):
+        fg = get_rgb(self.vars, "--color-on-primary")
+        bg = get_rgb(self.vars, "--color-primary")
+        fg_lum = relative_luminance(*fg)
+        bg_lum = relative_luminance(*bg)
+        ratio = (max(fg_lum, bg_lum) + 0.05) / (min(fg_lum, bg_lum) + 0.05)
+        self.assertGreater(ratio, 3.0,
+            f"--color-on-primary vs --color-primary contrast ratio {ratio:.1f} < 3.0")
+
+
+WCAG_AAA_RATIO = 7.0
+
+class TestHighContrastTheme(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        css = CSS_PATH.read_text()
+        cls.vars = extract_css_vars(css, '[data-theme="high-contrast"]')
+        assert cls.vars, '[data-theme="high-contrast"] block has no variables'
+
+    def test_backgrounds_are_dark(self):
+        for var in BG_VARS:
+            with self.subTest(var=var):
+                r, g, b = get_rgb(self.vars, var)
+                lum = relative_luminance(r, g, b)
+                self.assertLess(lum, 0.05,
+                    f"{var}={self.vars[var]} luminance {lum:.3f} too bright for high-contrast theme")
+
+    def test_text_primary_meets_wcag_aaa(self):
+        """--text-primary on --bg-page must exceed WCAG AAA 7:1 ratio."""
+        fg = get_rgb(self.vars, "--text-primary")
+        bg = get_rgb(self.vars, "--bg-page")
+        fg_lum = relative_luminance(*fg)
+        bg_lum = relative_luminance(*bg)
+        ratio = (max(fg_lum, bg_lum) + 0.05) / (min(fg_lum, bg_lum) + 0.05)
+        self.assertGreater(ratio, WCAG_AAA_RATIO,
+            f"--text-primary on --bg-page contrast ratio {ratio:.1f} < {WCAG_AAA_RATIO}")
+
+    def test_primary_color_meets_wcag_aaa(self):
+        """--color-primary on --bg-page must exceed WCAG AAA 7:1 ratio."""
+        fg = get_rgb(self.vars, "--color-primary")
+        bg = get_rgb(self.vars, "--bg-page")
+        fg_lum = relative_luminance(*fg)
+        bg_lum = relative_luminance(*bg)
+        ratio = (max(fg_lum, bg_lum) + 0.05) / (min(fg_lum, bg_lum) + 0.05)
+        self.assertGreater(ratio, WCAG_AAA_RATIO,
+            f"--color-primary on --bg-page contrast ratio {ratio:.1f} < {WCAG_AAA_RATIO}")
+
+    def test_success_color_meets_wcag_aaa(self):
+        """--color-success on --bg-success must exceed WCAG AAA ratio."""
+        fg = get_rgb(self.vars, "--color-success")
+        bg = get_rgb(self.vars, "--bg-success")
+        fg_lum = relative_luminance(*fg)
+        bg_lum = relative_luminance(*bg)
+        ratio = (max(fg_lum, bg_lum) + 0.05) / (min(fg_lum, bg_lum) + 0.05)
+        self.assertGreater(ratio, WCAG_AAA_RATIO,
+            f"--color-success on --bg-success contrast ratio {ratio:.1f} < {WCAG_AAA_RATIO}")
+
+    def test_error_color_meets_wcag_aaa(self):
+        """--color-error on --bg-error must exceed WCAG AAA ratio."""
+        fg = get_rgb(self.vars, "--color-error")
+        bg = get_rgb(self.vars, "--bg-error")
+        fg_lum = relative_luminance(*fg)
+        bg_lum = relative_luminance(*bg)
+        ratio = (max(fg_lum, bg_lum) + 0.05) / (min(fg_lum, bg_lum) + 0.05)
+        self.assertGreater(ratio, WCAG_AAA_RATIO,
+            f"--color-error on --bg-error contrast ratio {ratio:.1f} < {WCAG_AAA_RATIO}")
+
+    def test_on_primary_contrasts_primary(self):
+        fg = get_rgb(self.vars, "--color-on-primary")
+        bg = get_rgb(self.vars, "--color-primary")
+        fg_lum = relative_luminance(*fg)
+        bg_lum = relative_luminance(*bg)
+        ratio = (max(fg_lum, bg_lum) + 0.05) / (min(fg_lum, bg_lum) + 0.05)
+        self.assertGreater(ratio, WCAG_AAA_RATIO,
+            f"--color-on-primary vs --color-primary contrast ratio {ratio:.1f} < {WCAG_AAA_RATIO}")
+
+
+ALL_THEME_SELECTORS = {
+    "dark": ":root",
+    "light": '[data-theme="light"]',
+    "oled": '[data-theme="oled"]',
+    "high-contrast": '[data-theme="high-contrast"]',
+}
+
 class TestThemeCompleteness(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         css = CSS_PATH.read_text()
-        cls.dark_vars = extract_css_vars(css, ":root")
-        cls.light_vars = extract_css_vars(css, '[data-theme="light"]')
+        cls.theme_vars = {}
+        for name, selector in ALL_THEME_SELECTORS.items():
+            cls.theme_vars[name] = extract_css_vars(css, selector)
+            assert cls.theme_vars[name], f"{selector} block has no variables"
 
-    def test_light_theme_covers_all_dark_vars(self):
-        """Every variable in dark theme must have a light theme override."""
-        for var in self.dark_vars:
-            with self.subTest(var=var):
-                self.assertIn(var, self.light_vars,
-                    f"{var} defined in dark theme but missing from light theme")
+    def test_all_themes_cover_same_variables(self):
+        """Every theme must define the exact same set of CSS variables."""
+        dark_keys = set(self.theme_vars["dark"])
+        for name in ("light", "oled", "high-contrast"):
+            with self.subTest(theme=name):
+                theme_keys = set(self.theme_vars[name])
+                missing = dark_keys - theme_keys
+                extra = theme_keys - dark_keys
+                self.assertFalse(missing,
+                    f"{name} theme missing variables: {missing}")
+                self.assertFalse(extra,
+                    f"{name} theme has extra variables not in dark: {extra}")
 
     def test_all_vars_classified(self):
         """Every CSS variable should belong to a test category."""
-        for var in self.dark_vars:
+        for var in self.theme_vars["dark"]:
             with self.subTest(var=var):
                 self.assertIn(var, ALL_CLASSIFIED,
                     f"{var} is unclassified — add it to a test category")

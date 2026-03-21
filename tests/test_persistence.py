@@ -449,5 +449,143 @@ class TestJSPickNext(unittest.TestCase):
         self.assertTrue(results[0]["pass"], results[0].get("error"))
 
 
+class TestThemeCycling(unittest.TestCase):
+    """Test toggleTheme cycles through all 4 themes and setTheme sets directly."""
+
+    def test_toggle_cycles_dark_light_oled_highcontrast(self):
+        """toggleTheme() cycles dark → light → oled → high-contrast → dark."""
+        results = _run_js_tests([{
+            "name": "theme_cycle",
+            "code": """
+                document.documentElement._theme = 'dark';
+                document.documentElement.getAttribute = function(a) {
+                    return this._theme;
+                };
+                document.documentElement.setAttribute = function(a, v) {
+                    this._theme = v;
+                };
+                var expected = ['light', 'oled', 'high-contrast', 'dark'];
+                for (var i = 0; i < expected.length; i++) {
+                    toggleTheme();
+                    if (document.documentElement._theme !== expected[i])
+                        throw new Error('After toggle ' + (i+1) + ': expected ' +
+                            expected[i] + ', got ' + document.documentElement._theme);
+                }
+            """,
+        }])
+        self.assertTrue(results[0]["pass"], results[0].get("error"))
+
+    def test_setTheme_sets_directly(self):
+        """setTheme() sets the data-theme attribute to the given value."""
+        results = _run_js_tests([{
+            "name": "setTheme_direct",
+            "code": """
+                document.documentElement._theme = 'dark';
+                document.documentElement.getAttribute = function(a) {
+                    return this._theme;
+                };
+                document.documentElement.setAttribute = function(a, v) {
+                    this._theme = v;
+                };
+                setTheme('oled');
+                if (document.documentElement._theme !== 'oled')
+                    throw new Error('expected oled, got ' + document.documentElement._theme);
+                setTheme('high-contrast');
+                if (document.documentElement._theme !== 'high-contrast')
+                    throw new Error('expected high-contrast, got ' + document.documentElement._theme);
+                setTheme('light');
+                if (document.documentElement._theme !== 'light')
+                    throw new Error('expected light, got ' + document.documentElement._theme);
+            """,
+        }])
+        self.assertTrue(results[0]["pass"], results[0].get("error"))
+
+    def test_setTheme_persists_to_localStorage(self):
+        """setTheme() writes the theme to localStorage."""
+        results = _run_js_tests([{
+            "name": "setTheme_localStorage",
+            "code": """
+                document.documentElement._theme = 'dark';
+                document.documentElement.getAttribute = function(a) {
+                    return this._theme;
+                };
+                document.documentElement.setAttribute = function(a, v) {
+                    this._theme = v;
+                };
+                setTheme('high-contrast');
+                var stored = localStorage.getItem('theme');
+                if (stored !== 'high-contrast')
+                    throw new Error('localStorage theme: ' + stored);
+            """,
+        }])
+        self.assertTrue(results[0]["pass"], results[0].get("error"))
+
+    def test_toggle_persists_to_localStorage(self):
+        """toggleTheme() writes each new theme to localStorage."""
+        results = _run_js_tests([{
+            "name": "toggle_localStorage",
+            "code": """
+                document.documentElement._theme = 'dark';
+                document.documentElement.getAttribute = function(a) {
+                    return this._theme;
+                };
+                document.documentElement.setAttribute = function(a, v) {
+                    this._theme = v;
+                };
+                toggleTheme();
+                if (localStorage.getItem('theme') !== 'light')
+                    throw new Error('after 1st toggle: ' + localStorage.getItem('theme'));
+                toggleTheme();
+                if (localStorage.getItem('theme') !== 'oled')
+                    throw new Error('after 2nd toggle: ' + localStorage.getItem('theme'));
+            """,
+        }])
+        self.assertTrue(results[0]["pass"], results[0].get("error"))
+
+    def test_theme_in_saveState_payload(self):
+        """saveState() includes the current theme in the persisted JSON."""
+        results = _run_js_tests([{
+            "name": "theme_in_saveState",
+            "code": """
+                document.documentElement._theme = 'oled';
+                document.documentElement.getAttribute = function(a) {
+                    return this._theme;
+                };
+                document.documentElement.setAttribute = function(a, v) {
+                    this._theme = v;
+                };
+                saveState();
+                var saved = JSON.parse(localStorage.getItem('quizState'));
+                if (saved.theme !== 'oled')
+                    throw new Error('saveState theme: ' + saved.theme);
+            """,
+        }])
+        self.assertTrue(results[0]["pass"], results[0].get("error"))
+
+    def test_all_four_themes_round_trip_saveState(self):
+        """Each of the 4 theme values round-trips through saveState."""
+        results = _run_js_tests([{
+            "name": "all_themes_saveState",
+            "code": """
+                document.documentElement._theme = 'dark';
+                document.documentElement.getAttribute = function(a) {
+                    return this._theme;
+                };
+                document.documentElement.setAttribute = function(a, v) {
+                    this._theme = v;
+                };
+                var themes = ['dark', 'light', 'oled', 'high-contrast'];
+                for (var i = 0; i < themes.length; i++) {
+                    document.documentElement._theme = themes[i];
+                    saveState();
+                    var saved = JSON.parse(localStorage.getItem('quizState'));
+                    if (saved.theme !== themes[i])
+                        throw new Error('theme ' + themes[i] + ' saved as ' + saved.theme);
+                }
+            """,
+        }])
+        self.assertTrue(results[0]["pass"], results[0].get("error"))
+
+
 if __name__ == "__main__":
     unittest.main()
