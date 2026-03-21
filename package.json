@@ -1,0 +1,11 @@
+{
+  "private": true,
+  "scripts": {
+    "build": "esbuild src/ts/init.ts --bundle --format=iife --outfile=static/js/app.js --keep-names",
+    "check": "tsc --noEmit && npm run build"
+  },
+  "devDependencies": {
+    "esbuild": "0.25.12",
+    "typescript": "^5.7.0"
+  }
+}

@@ -1,0 +1,161 @@
+import { S, MODES, rebuildWordlist } from './state';
+import { saveState } from './persistence';
+import { startQuiz, startReverse, startMixed, startCon,
+         checkQuiz, checkReverse, checkMixed, checkCon } from './quiz';
+import { renderProfile } from './profile';
+
+export function renderGrid(): void {
+  const g = document.getElementById('grid')!;
+  g.innerHTML = '';
+  for (let i = 0; i < 100; i++) {
+    const d = String(i).padStart(2, '0');
+    const w = S.wordlist[d] ?? '???';
+    const c = document.createElement('div');
+    c.className = 'grid-cell';
+    c.setAttribute('data-key', d);
+    const isCustom = S.customWords[d] ? '<span class="custom-marker">*</span>' : '';
+    c.innerHTML = `<div class="number">${d}${isCustom}</div>`;
+    const inp = document.createElement('input');
+    inp.className = 'word-input';
+    inp.value = w;
+    inp.setAttribute('data-key', d);
+    inp.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') this.blur();
+    });
+    inp.addEventListener('input', function () {
+      const key = this.getAttribute('data-key')!;
+      const val = this.value.trim();
+      if (val && /^[a-z]/.test(val) && val !== S.defaultWordlist[key]) {
+        S.customWords[key] = val;
+      } else if (!val || val === S.defaultWordlist[key]) {
+        delete S.customWords[key];
+      }
+      rebuildWordlist();
+      saveState();
+    });
+    inp.addEventListener('blur', function () {
+      const key = this.getAttribute('data-key')!;
+      const val = this.value.trim();
+      if (!val || !/^[a-z]/.test(val)) {
+        delete S.customWords[key];
+        rebuildWordlist();
+        this.value = S.wordlist[key] ?? '';
+        saveState();
+      }
+      const numEl = this.parentNode!.querySelector('.number')!;
+      const marker = numEl.querySelector('.custom-marker');
+      if (S.customWords[key] && !marker) {
+        numEl.insertAdjacentHTML('beforeend', '<span class="custom-marker">*</span>');
+      } else if (!S.customWords[key] && marker) {
+        marker.remove();
+      }
+    });
+    c.addEventListener('click', function () { this.querySelector<HTMLInputElement>('.word-input')!.focus(); });
+    c.appendChild(inp);
+    g.appendChild(c);
+  }
+}
+
+export function renderRef(): void {
+  const b = document.getElementById('ref-body')!;
+  b.innerHTML = '';
+  for (let d = 0; d <= 9; d++) {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td><strong>${d}</strong></td><td>${S.mapping[String(d)]}</td>`;
+    b.appendChild(tr);
+  }
+}
+
+const quizSections = ['quiz', 'reverse', 'mixed', 'consonant'];
+
+export function showSection(name: string): void {
+  document.querySelectorAll('.section').forEach((s) => { s.classList.remove('active'); });
+  document.getElementById(`section-${name}`)!.classList.add('active');
+  document.querySelectorAll('.topbar-nav button').forEach((b) => { b.classList.remove('active'); });
+  const isQuiz = quizSections.indexOf(name) !== -1;
+  if (isQuiz) {
+    document.querySelector('.topbar-nav [data-section="quiz-nav"]')!.classList.add('active');
+    document.getElementById('subnav')!.classList.add('visible');
+  } else {
+    const navBtn = document.querySelector(`.topbar-nav [data-section="${name}"]`);
+    if (navBtn) navBtn.classList.add('active');
+    document.getElementById('subnav')!.classList.remove('visible');
+  }
+  document.querySelectorAll('.subnav button').forEach((b) => { b.classList.remove('active'); });
+  const sub = document.querySelector(`.subnav [data-section="${name}"]`);
+  if (sub) sub.classList.add('active');
+  if (name === 'quiz') startQuiz();
+  if (name === 'reverse') startReverse();
+  if (name === 'mixed') startMixed();
+  if (name === 'consonant') startCon();
+  if (name === 'profile') renderProfile();
+}
+
+export function showQuizNav(): void {
+  const sub = document.getElementById('subnav')!;
+  if (sub.classList.contains('visible')) {
+    const active = sub.querySelector('button.active');
+    if (active) showSection(active.getAttribute('data-section')!);
+    else showSection('quiz');
+  } else {
+    showSection('quiz');
+  }
+}
+
+export function updateScore(): void {
+  const pct = S.score.total > 0 ? Math.round(S.score.correct / S.score.total * 100) : 0;
+  document.getElementById('score-text')!.textContent =
+    `${S.score.correct} / ${S.score.total} (${pct}%)`;
+}
+
+/* Keyboard: Enter = submit */
+document.getElementById('quiz-input')!.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') checkQuiz();
+});
+document.getElementById('rev-input')!.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') checkReverse();
+});
+document.getElementById('mix-input')!.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') checkMixed();
+});
+document.getElementById('con-input')!.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') checkCon();
+});
+
+/* Translate: number string -> nouns */
+document.getElementById('translate-input')!.addEventListener('input', function () {
+  const raw = (this as HTMLInputElement).value.replace(/[^0-9]/g, '');
+  const out = document.getElementById('translate-output')!;
+  out.innerHTML = '';
+  if (!raw) return;
+  for (let i = 0; i < raw.length; i += 2) {
+    const chunk = raw.substr(i, 2);
+    const chip = document.createElement('div');
+    if (chunk.length === 2) {
+      const w = S.wordlist[chunk] ?? '???';
+      chip.className = 'translate-chip';
+      chip.innerHTML = `<div class="number">${chunk}</div><div class="word">${w}</div>`;
+    } else {
+      chip.className = 'translate-chip odd';
+      chip.textContent = `${chunk}?`;
+    }
+    out.appendChild(chip);
+  }
+});
+
+export function updateMasteryColors(): void {
+  if (!S.keys.length) return;
+  const cells = document.querySelectorAll('.grid-cell');
+  cells.forEach((cell) => {
+    const key = cell.getAttribute('data-key');
+    if (!key) return;
+    const total = (MODES.quiz.scores[key] ?? 0) + (MODES.reverse.scores[key] ?? 0) + (MODES.mixed.scores[key] ?? 0);
+    let cls: string;
+    if (total <= -3) cls = 'mastery-0';
+    else if (total < 0) cls = 'mastery-1';
+    else if (total <= 3) cls = 'mastery-2';
+    else if (total <= 8) cls = 'mastery-3';
+    else cls = 'mastery-4';
+    cell.className = cell.className.replace(/mastery-\d/g, '').trim() + ' ' + cls;
+  });
+}

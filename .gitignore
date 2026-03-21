@@ -9,3 +9,5 @@ build/
 db.sqlite3
 collected_static/
 .claude/
+node_modules/
+static/js/app.js

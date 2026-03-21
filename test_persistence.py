@@ -1,8 +1,8 @@
 """Tests for quiz state persistence via localStorage.
 
-Concatenates JS from templates/js/ (state, persistence, theme, quiz, ui,
-profile, init), runs in Node.js with a localStorage mock and minimal DOM
-stubs, and verifies saveState/loadState round-trips correctly.
+Loads the esbuild-compiled bundle (static/js/app.js), runs in Node.js with
+a localStorage mock and minimal DOM stubs, and verifies saveState/loadState
+round-trips correctly.
 
 Run:
     python -m pytest test_persistence.py -v
@@ -41,6 +41,7 @@ var document = {
   getElementById: function(){ return _stubEl; },
   querySelectorAll: function(){ return {forEach:function(){}}; },
   querySelector: function(){ return _stubEl; },
+  createElement: function(){ return Object.create(_stubEl); },
   documentElement: {getAttribute:function(){return 'dark';},setAttribute:function(){}},
   cookie: ''
 };
@@ -68,13 +69,7 @@ process.stdout.write(JSON.stringify(results));
 
 
 _JS_FILES = [
-    "templates/js/state.js",
-    "templates/js/persistence.js",
-    "templates/js/theme.js",
-    "templates/js/quiz.js",
-    "templates/js/ui.js",
-    "templates/js/profile.js",
-    "templates/js/init.js",
+    "static/js/app.js",
 ]
 
 def _extract_js_block():
@@ -90,8 +85,14 @@ def _run_js_tests(tests):
     """Run a list of {name, code} JS test snippets in Node and return results."""
     js_code = _extract_js_block()
     # Remove the init() call at the bottom (it calls fetch which we don't need)
-    js_code = js_code.replace("\ninit();\n", "\n")
-    js_code = js_code.replace("\ninit();", "\n")
+    import re
+    # Unwrap esbuild IIFE so variables are global in test scope
+    js_code = js_code.replace('"use strict";\n(() => {\n', "")
+    js_code = js_code.replace("\n})();\n", "\n")
+    # Strip Object.assign(window, ...) since window doesn't exist in Node
+    js_code = re.sub(r"Object\.assign\(window,\s*\{[^}]*\}\);", "", js_code)
+    # Remove init() call (may be indented by esbuild)
+    js_code = re.sub(r"\n\s*init\(\);\n", "\n", js_code)
     # Convert let/const to var so they're accessible across eval scopes
     js_code = js_code.replace("\nlet ", "\nvar ").replace("\nconst ", "\nvar ")
 

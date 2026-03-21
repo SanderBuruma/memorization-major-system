@@ -262,15 +262,8 @@ body{font-family:system-ui,-apple-system,sans-serif;background:var(--bg-page);co
   </div>
 </div>
 
-<script>
-{% include "js/state.js" %}
-{% include "js/persistence.js" %}
-{% include "js/theme.js" %}
-{% include "js/quiz.js" %}
-{% include "js/ui.js" %}
-{% include "js/profile.js" %}
-{% include "js/init.js" %}
-</script>
+{% load static %}
+<script src="{% static 'js/app.js' %}"></script>
 </body>
 </html>
 

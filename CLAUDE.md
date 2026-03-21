@@ -5,13 +5,16 @@
 - New features should be added as sections within the SPA, not as separate Django templates/pages
 - Section switching via `showSection(name)` — add HTML as `<div id="section-{name}" class="section">`, render content in JS
 
-## JS Structure
-- All JS lives in `templates/js/`, included via `{% include %}` in order: state → persistence → theme → quiz → ui → profile → init
-- State consolidated into `S` object (wordlist, mapping, score, etc.) and `MODES` configs (per-quiz-mode scores, history, DOM IDs)
-- Quiz modes share a generic engine (`startMode`/`checkMode`/`skipMode`); mode-specific behavior lives in MODES config functions
+## TypeScript / JS Structure
+- Source lives in `src/ts/` (8 files): types → state → persistence → theme → quiz → ui → profile → init
+- Built with esbuild into `static/js/app.js` (IIFE bundle, not committed — built by CI and VPS deploy)
+- Typecheck with `tsc --noEmit`; build + check via `npm run check`
+- State consolidated into `S` object and `MODES` configs (per-quiz-mode scores, history, DOM IDs)
+- Quiz modes share a generic engine (`startMode`/`checkMode`/`skipMode`); mode-specific behavior lives in MODES config
 - Persistence uses `STATE_FIELDS` manifest — add new persisted fields there, not in saveState/loadState individually
-- Thin wrapper functions (`checkQuiz`, `skipQuiz`, etc.) keep HTML onclick compatibility
+- HTML onclick handlers exposed via `Object.assign(window, ...)` in init.ts
 - Custom word validation: must match `/^[a-z]/`
+- Cache busting via `ManifestStaticFilesStorage` — `collectstatic` hashes filenames
 
 ## API
 - `views.py` uses `_FIELD_MAP` dict to map JS keys to model fields with type validation
