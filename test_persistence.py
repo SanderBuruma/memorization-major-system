@@ -1,8 +1,8 @@
 """Tests for quiz state persistence via localStorage.
 
-Extracts the JS from templates/js/app.js, runs it in Node.js with a localStorage
-mock and minimal DOM stubs, and verifies saveState/loadState round-trips
-correctly for the score-based quiz system.
+Concatenates JS from templates/js/ (state, persistence, theme, quiz, ui,
+profile, init), runs in Node.js with a localStorage mock and minimal DOM
+stubs, and verifies saveState/loadState round-trips correctly.
 
 Run:
     python -m pytest test_persistence.py -v

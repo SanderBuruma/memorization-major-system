@@ -66,7 +66,7 @@ var MODES = {
         inp.maxLength = 524288;
       } else {
         inp.placeholder = 'type the number...';
-        inp.maxLength = '2';
+        inp.maxLength = 2;
       }
     }
   },
