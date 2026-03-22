@@ -23,7 +23,7 @@ WORDLIST_PATH = Path(__file__).resolve().parent.parent / 'wordlist.json'
 # Curated single-digit nouns: vivid, concrete, easy to visualize.
 SINGLE_DIGIT_WORDS = {
     '0': 'sea', '1': 'tie', '2': 'knee', '3': 'maw', '4': 'aura',
-    '5': 'oil', '6': 'shoe', '7': 'cow', '8': 'fur', '9': 'pie',
+    '5': 'oil', '6': 'shoe', '7': 'cow', '8': 'wife', '9': 'pie',
 }
 
 # Words to exclude (offensive, abbreviations, or poor for memorization)

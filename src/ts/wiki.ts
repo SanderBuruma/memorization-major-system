@@ -53,7 +53,7 @@ function inlineExample(key: string): string {
 /** Curated single-digit nouns: vivid, concrete, easy to visualize. */
 const SINGLE_DIGIT_WORDS: Record<string, string> = {
   '0': 'sea', '1': 'tie', '2': 'knee', '3': 'maw', '4': 'aura',
-  '5': 'oil', '6': 'shoe', '7': 'cow', '8': 'fur', '9': 'pie',
+  '5': 'oil', '6': 'shoe', '7': 'cow', '8': 'wife', '9': 'pie',
 };
 
 /** Show one curated noun per digit (0–9) with its consonant sounds. */
