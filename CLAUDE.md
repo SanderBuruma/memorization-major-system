@@ -33,7 +33,7 @@
 ## API
 - `views.py` uses `_FIELD_MAP` dict to map JS keys to model fields with type validation
 - Score, theme, `tutorialSeen`, and `dyslexiaFont` have special handling outside the field map
-- `GET /api/candidates/<digits>` — returns concrete noun suggestions for a 2-digit number (from `build_candidate_map`)
+- `GET /api/candidates/<digits>` — returns concrete noun suggestions for a 1- or 2-digit number (from `build_candidate_map`)
 - `POST /api/encode` — encodes words to Major System digits, body: `{"text": "..."}`, returns `[{"word", "digits"}]`
 
 ## QuizState model fields

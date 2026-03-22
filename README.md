@@ -6,7 +6,7 @@ Built with Django, TypeScript, and SCSS.
 
 ## Features
 
-**Grid** — 10x10 grid (00–99) where you assign a word to each two-digit number. Click any cell to edit. An autocomplete dropdown suggests concrete nouns that match the Major System encoding for that number.
+**Grid** — A row of single-digit words (0–9) plus a 10x10 grid (00–99), giving 110 number-word pairs. Click any cell to edit. An autocomplete dropdown suggests concrete nouns that match the Major System encoding for that number.
 
 **Quiz modes** — Four timed quiz modes that test your associations in different directions:
 - **Quiz** — see a number, type the word
@@ -34,10 +34,10 @@ Each mode tracks per-number scores and history independently. A settings panel c
 
 | Endpoint | Method | Description |
 |---|---|---|
-| `/api/wordlist` | GET | Full 00–99 wordlist |
+| `/api/wordlist` | GET | Full 0–9 and 00–99 wordlist (110 entries) |
 | `/api/mapping` | GET | Major System sound-to-digit mapping |
 | `/api/state` | GET/POST | Read/write quiz state (scores, history, theme, settings) |
-| `/api/candidates/<digits>` | GET | Concrete noun suggestions for a two-digit number |
+| `/api/candidates/<digits>` | GET | Concrete noun suggestions for a one- or two-digit number |
 | `/api/encode` | POST | Encode words to Major System digits. Body: `{"text": "..."}` |
 
 ## Development

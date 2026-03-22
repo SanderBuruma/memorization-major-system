@@ -108,8 +108,8 @@ ${wordExamples(['00', '14', '27', '53', '91'])}
       {
         title: 'Using the Grid',
         content: `
-<p>The <strong>Grid</strong> view is your home screen. It shows all 100 number-word pairs (00–99) in a 10×10 grid.</p>
-<p>Each cell displays the two-digit number and the word currently assigned to it. Click any cell to edit its word.</p>
+<p>The <strong>Grid</strong> view is your home screen. It shows all 110 number-word pairs in the grid: a top row of single-digit words (0–9) followed by a 10×10 block of two-digit pairs (00–99).</p>
+<p>Each cell displays the number and the word currently assigned to it. Click any cell to edit its word.</p>
 <p>The grid is your reference and workspace — browse it to review your words, or use it to spot gaps in your knowledge.</p>`,
       },
       {
@@ -142,14 +142,14 @@ ${wordExamples(['00', '14', '27', '53', '91'])}
       {
         title: 'Number → Word',
         content: `
-<p>You see a <strong>two-digit number</strong> and must type the corresponding word from your wordlist.</p>
+<p>You see a <strong>number</strong> (single- or two-digit) and must type the corresponding word from your wordlist.</p>
 <p>The quiz uses <strong>spaced repetition</strong> — numbers you get wrong or skip come back more often, while mastered numbers appear less frequently.</p>
 <p>Press <strong>Enter</strong> to submit, or click Skip to reveal the answer and move on.</p>`,
       },
       {
         title: 'Word → Number',
         content: `
-<p>The reverse direction: you see a <strong>word</strong> and must type the <strong>two-digit number</strong> it encodes.</p>
+<p>The reverse direction: you see a <strong>word</strong> and must type the <strong>number</strong> it encodes (single- or two-digit).</p>
 <p>This mode tests whether you can go from an image back to its number — essential for practical use of the Major System.</p>`,
       },
       {
@@ -167,7 +167,7 @@ ${wordExamples(['00', '14', '27', '53', '91'])}
       {
         title: 'Grid Quiz',
         content: `
-<p>A timed challenge: the entire 100-cell grid appears with <strong>shuffled</strong> numbers and blank inputs. Fill in as many words as you can, then click <strong>Check All</strong>.</p>
+<p>A timed challenge: all 110 numbers appear <strong>shuffled</strong> with blank inputs. Fill in as many words as you can, then click <strong>Check All</strong>.</p>
 <p>Correct cells turn green, wrong ones turn red with the expected answer shown. A timer tracks how long you take.</p>
 <p>This mode is great for measuring overall coverage and speed.</p>`,
       },
@@ -214,9 +214,9 @@ ${wordExamples(['00', '14', '27', '53', '91'])}
       {
         title: 'Mastery Stats',
         content: `
-<p>The Profile page shows a <strong>mastery distribution</strong> bar chart — how many of your 100 numbers fall into each mastery level (red through green).</p>
+<p>The Profile page shows a <strong>mastery distribution</strong> bar chart — how many of your 110 numbers fall into each mastery level (red through green).</p>
 <p>Below that, <strong>coverage percentages</strong> show how many numbers you've practiced at least once in each quiz mode.</p>
-<p>Your goal: get all 100 numbers to bright green mastery.</p>`,
+<p>Your goal: get all 110 numbers to bright green mastery.</p>`,
       },
       {
         title: 'Score Tracking',
