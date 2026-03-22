@@ -1,4 +1,4 @@
-"""Word selection logic for Major System 00-99 noun associations.
+"""Word selection logic for Major System 0-99 noun associations.
 
 Uses NLTK WordNet nouns filtered for concreteness (must trace to
 physical_entity.n.01) and the CMU Pronouncing Dictionary for phoneme-based
@@ -20,6 +20,12 @@ logger = logging.getLogger(__name__)
 
 WORDLIST_PATH = Path(__file__).resolve().parent.parent / 'wordlist.json'
 
+# Curated single-digit nouns: vivid, concrete, easy to visualize.
+SINGLE_DIGIT_WORDS = {
+    '0': 'sea', '1': 'tie', '2': 'knee', '3': 'maw', '4': 'aura',
+    '5': 'oil', '6': 'shoe', '7': 'cow', '8': 'fur', '9': 'pie',
+}
+
 # Words to exclude (offensive, abbreviations, or poor for memorization)
 BLOCKED_WORDS = {
     'jap', 'fag', 'coon', 'spic', 'kike',          # slurs
@@ -40,17 +46,23 @@ def ensure_nltk_data():
             nltk.download(name, quiet=True)
 
 
+# Two-tier concreteness system:
+#   Narrow (get_concrete_nouns): only physical_entity hyponyms — used to generate
+#     candidate suggestions, where we want strictly tangible objects.
+#   Broad (_CONCRETE_ROOT_NAMES / is_concrete_noun_synset): adds social groups,
+#     imaginary beings, etc. — used to validate user-chosen words, where we accept
+#     anything vivid enough to form a mental image.
 _CONCRETE_ROOT_NAMES = (
-    'physical_entity.n.01',
-    'social_group.n.01',
-    'person.n.01',
-    'organism.n.01',
-    'imaginary_being.n.01',
-    'spiritual_being.n.01',
-    'causal_agent.n.01',
-    'clock_time.n.01',
-    'sound.n.04',
-    'written_symbol.n.01',
+    'physical_entity.n.01',      # core: objects, substances, locations
+    'social_group.n.01',         # teams, families, nations — visualisable groups
+    'person.n.01',               # people (already under physical, but explicit for clarity)
+    'organism.n.01',             # animals and plants
+    'imaginary_being.n.01',      # dragon, unicorn — vivid mental images
+    'spiritual_being.n.01',      # angel, demon — culturally concrete
+    'causal_agent.n.01',         # broader than person: includes natural forces
+    'clock_time.n.01',           # noon, midnight — concrete points in time
+    'sound.n.04',               # bang, hiss — auditory but sensory-concrete
+    'written_symbol.n.01',       # letter, digit — visually concrete symbols
 )
 _concrete_roots = None
 
@@ -81,10 +93,8 @@ def is_concrete_noun_synset(synset):
 def get_concrete_nouns():
     """Return a set of single-word concrete nouns from WordNet.
 
-    Uses a narrow definition: a noun is included only if at least one of
-    its synsets is a hyponym of ``physical_entity.n.01``.  The separate
-    ``is_word_concrete()`` function used for wordlist validation is broader,
-    accepting additional roots like ``social_group`` and ``imaginary_being``.
+    Uses the *narrow* tier (``physical_entity.n.01`` only) — see the
+    two-tier concreteness comment above ``_CONCRETE_ROOT_NAMES``.
     """
     ensure_nltk_data()
     physical_entity = wn.synset('physical_entity.n.01')
@@ -115,11 +125,11 @@ def is_word_concrete(word):
 
 
 def build_candidate_map(nouns):
-    """Map each two-digit string to its list of candidate nouns."""
+    """Map each one- or two-digit string to its list of candidate nouns."""
     candidates = {}
     for noun in nouns:
         digits = word_to_digits(noun)
-        if digits is not None and len(digits) == 2:
+        if digits is not None and len(digits) in (1, 2):
             candidates.setdefault(digits, []).append(noun)
     return candidates
 
@@ -130,12 +140,12 @@ def select_best_word(candidates):
 
 
 def generate_wordlist(seed=42):
-    """Generate the complete 00-99 Major System wordlist.
+    """Generate the complete 0-99 Major System wordlist.
 
     Preserves existing valid entries from wordlist.json (the single source of
     truth) and only auto-fills missing or invalid slots.
 
-    Returns a dict mapping ``"00"``-``"99"`` to noun strings (or None).
+    Returns a dict mapping ``"0"``-``"9"`` and ``"00"``-``"99"`` to noun strings (or None).
     """
     random.seed(seed)
 
@@ -151,11 +161,22 @@ def generate_wordlist(seed=42):
 
     logger.info("Building candidate map from CMU pronunciations...")
     candidates = build_candidate_map(nouns)
-    logger.info("Found candidates for %d / 100 digit pairs", len(candidates))
+    logger.info("Found candidates for %d digit strings", len(candidates))
 
     wordlist = {}
     missing = []
 
+    # Single-digit entries (0-9): use curated defaults, allow existing overrides
+    for digit in range(10):
+        d = str(digit)
+        if d in existing and existing[d] and word_to_digits(existing[d]) == d:
+            wordlist[d] = existing[d]
+            logger.info("  %s -> %s (existing)", d, existing[d])
+        else:
+            wordlist[d] = SINGLE_DIGIT_WORDS[d]
+            logger.info("  %s -> %s (curated default)", d, SINGLE_DIGIT_WORDS[d])
+
+    # Two-digit entries (00-99)
     for num in range(100):
         digits = number_to_digits(num)
 
@@ -192,6 +213,15 @@ def validate_and_fix(wordlist):
     # Build candidates once for replacements
     nouns = get_concrete_nouns()
     candidates = build_candidate_map(nouns)
+
+    # Ensure single-digit entries exist
+    for digit in range(10):
+        d = str(digit)
+        word = wordlist.get(d)
+        if word is None or word_to_digits(word) != d:
+            wordlist[d] = SINGLE_DIGIT_WORDS[d]
+            if word is not None:
+                issues.append(f"{d}: '{word}' encodes incorrectly, reset to '{SINGLE_DIGIT_WORDS[d]}'")
 
     for num in range(100):
         digits = number_to_digits(num)
@@ -242,6 +272,16 @@ def load_or_generate_wordlist():
 
         # Quick encoding check (fast, only needs CMU dict)
         needs_fix = False
+
+        # Check single-digit entries
+        for digit in range(10):
+            d = str(digit)
+            word = wordlist.get(d)
+            if word is None or word_to_digits(word) != d:
+                logger.warning("Invalid/missing single-digit entry for %s: %s", d, word)
+                needs_fix = True
+
+        # Check two-digit entries
         for num in range(100):
             digits = number_to_digits(num)
             word = wordlist.get(digits)
@@ -279,7 +319,7 @@ if __name__ == '__main__':
     wl, issues = validate_and_fix(wl)
     save_wordlist(wl)
     filled = sum(1 for v in wl.values() if v is not None)
-    print(f"\nGenerated {filled}/100 associations")
+    print(f"\nGenerated {filled}/110 associations")
     if issues:
         print(f"Issues fixed: {len(issues)}")
         for issue in issues:

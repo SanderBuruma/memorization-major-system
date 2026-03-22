@@ -38,8 +38,23 @@ class TestCandidatesAPI(TestCase):
                     (len(a), a) <= (len(b), b),
                     f"'{a}' should come before '{b}'")
 
+    def test_single_digit_returns_list(self):
+        resp = self.client.get('/api/candidates/0')
+        self.assertEqual(resp.status_code, 200)
+        self.assertIsInstance(resp.json(), list)
+
+    def test_single_digit_candidates_encode_correctly(self):
+        for d in ('0', '5', '9'):
+            with self.subTest(digit=d):
+                resp = self.client.get(f'/api/candidates/{d}')
+                data = resp.json()
+                for word in data[:5]:
+                    encoded = word_to_digits(word)
+                    self.assertEqual(encoded, d,
+                        f"'{word}' encodes to '{encoded}', expected '{d}'")
+
     def test_invalid_digits_returns_400(self):
-        for bad in ('1', '123', 'ab', 'x1'):
+        for bad in ('123', 'ab', 'x1'):
             with self.subTest(digits=bad):
                 resp = self.client.get(f'/api/candidates/{bad}')
                 self.assertEqual(resp.status_code, 400)

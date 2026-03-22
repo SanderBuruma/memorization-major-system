@@ -157,27 +157,35 @@ function setupGridCellInput(inp: HTMLInputElement): void {
   });
 }
 
+function createGridCell(digits: string): HTMLDivElement {
+  const word = appState.wordlist[digits] ?? '???';
+  const cell = document.createElement('div');
+  cell.className = 'grid-cell';
+  cell.setAttribute('data-key', digits);
+  const isCustom = appState.customWords[digits] ? '<span class="custom-marker">*</span>' : '';
+  cell.innerHTML = `<div class="number">${digits}${isCustom}</div>`;
+  const inp = document.createElement('input');
+  inp.className = 'word-input';
+  inp.value = word;
+  inp.setAttribute('data-key', digits);
+  inp.autocomplete = 'off';
+  setupGridCellInput(inp);
+  cell.addEventListener('click', function () { this.querySelector<HTMLInputElement>('.word-input')!.focus(); });
+  cell.appendChild(inp);
+  return cell;
+}
+
 export function renderGrid(): void {
   const grid = document.getElementById('grid')!;
   grid.innerHTML = '';
-  for (let i = 0; i < 100; i++) {
-    const digits = String(i).padStart(2, '0');
-    const word = appState.wordlist[digits] ?? '???';
-    const cell = document.createElement('div');
-    cell.className = 'grid-cell';
-    cell.setAttribute('data-key', digits);
-    const isCustom = appState.customWords[digits] ? '<span class="custom-marker">*</span>' : '';
-    cell.innerHTML = `<div class="number">${digits}${isCustom}</div>`;
-    const inp = document.createElement('input');
-    inp.className = 'word-input';
-    inp.value = word;
-    inp.setAttribute('data-key', digits);
-    inp.autocomplete = 'off';
-    setupGridCellInput(inp);
-    cell.addEventListener('click', function () { this.querySelector<HTMLInputElement>('.word-input')!.focus(); });
-    cell.appendChild(inp);
-    grid.appendChild(cell);
-  }
+  // Single-digit row (0-9)
+  for (let i = 0; i <= 9; i++) grid.appendChild(createGridCell(String(i)));
+  // Separator
+  const sep = document.createElement('div');
+  sep.className = 'grid-separator';
+  grid.appendChild(sep);
+  // Two-digit rows (00-99)
+  for (let i = 0; i < 100; i++) grid.appendChild(createGridCell(String(i).padStart(2, '0')));
 }
 
 export function renderRef(): void {
@@ -251,15 +259,10 @@ document.getElementById('translate-input')!.addEventListener('input', function (
   if (!raw) return;
   for (let i = 0; i < raw.length; i += 2) {
     const chunk = raw.substring(i, i + 2);
+    const word = appState.wordlist[chunk] ?? '???';
     const chip = document.createElement('div');
-    if (chunk.length === 2) {
-      const word = appState.wordlist[chunk] ?? '???';
-      chip.className = 'translate-chip';
-      chip.innerHTML = `<div class="number">${escapeHTML(chunk)}</div><div class="word">${escapeHTML(word)}</div>`;
-    } else {
-      chip.className = 'translate-chip odd';
-      chip.textContent = `${chunk}?`;
-    }
+    chip.className = 'translate-chip';
+    chip.innerHTML = `<div class="number">${escapeHTML(chunk)}</div><div class="word">${escapeHTML(word)}</div>`;
     out.appendChild(chip);
   }
 });
@@ -451,13 +454,13 @@ function parseCSVImport(text: string): Record<string, string> | string {
   for (let i = start; i < lines.length; i++) {
     const cols = lines[i].split(',');
     if (cols.length < 2) { errors.push(`Line ${i + 1}: not enough columns`); continue; }
-    const num = cols[0].trim().padStart(2, '0');
+    const raw_num = cols[0].trim();
+    const num = raw_num.length === 1 ? raw_num : raw_num.padStart(2, '0');
     const word = cols[1].trim();
-    if (!/^\d{2}$/.test(num) || parseInt(num) > 99) { errors.push(`Line ${i + 1}: invalid number "${cols[0].trim()}"`); continue; }
+    if (!/^\d{1,2}$/.test(num) || (num.length === 2 && parseInt(num) > 99)) { errors.push(`Line ${i + 1}: invalid number "${raw_num}"`); continue; }
     if (!/^[a-z]/.test(word)) { errors.push(`Line ${i + 1}: word "${word}" must start with a lowercase letter`); continue; }
     result[num] = word;
   }
-  if (errors.length && !Object.keys(result).length) return errors.join('; ');
   if (errors.length) return errors.join('; ');
   return result;
 }
@@ -470,14 +473,14 @@ function parseJSONImport(text: string): Record<string, string> | string {
   const result: Record<string, string> = {};
   const errors: string[] = [];
   for (const [key, val] of Object.entries(obj)) {
-    const num = key.trim().padStart(2, '0');
-    if (!/^\d{2}$/.test(num) || parseInt(num) > 99) { errors.push(`Invalid number "${key}"`); continue; }
+    const raw_key = key.trim();
+    const num = raw_key.length === 1 ? raw_key : raw_key.padStart(2, '0');
+    if (!/^\d{1,2}$/.test(num) || (num.length === 2 && parseInt(num) > 99)) { errors.push(`Invalid number "${raw_key}"`); continue; }
     if (typeof val !== 'string') { errors.push(`Value for "${key}" is not a string`); continue; }
     const word = val.trim();
     if (!/^[a-z]/.test(word)) { errors.push(`Word "${word}" for ${key} must start with a lowercase letter`); continue; }
     result[num] = word;
   }
-  if (errors.length && !Object.keys(result).length) return errors.join('; ');
   if (errors.length) return errors.join('; ');
   return result;
 }
@@ -514,10 +517,16 @@ export function importJSON(): void {
   handleFileImport('import-json-input', parseJSONImport);
 }
 
+function allDigitKeys(): string[] {
+  const keys: string[] = [];
+  for (let i = 0; i <= 9; i++) keys.push(String(i));
+  for (let i = 0; i < 100; i++) keys.push(String(i).padStart(2, '0'));
+  return keys;
+}
+
 export function exportWordlistCSV(): void {
   let csv = 'number,word,custom\n';
-  for (let i = 0; i < 100; i++) {
-    const digits = String(i).padStart(2, '0');
+  for (const digits of allDigitKeys()) {
     const word = appState.wordlist[digits] ?? '';
     const isCustom = appState.customWords[digits] ? 'true' : '';
     csv += `${digits},${word},${isCustom}\n`;
@@ -527,8 +536,7 @@ export function exportWordlistCSV(): void {
 
 export function exportWordlistJSON(): void {
   const obj: Record<string, string> = {};
-  for (let i = 0; i < 100; i++) {
-    const digits = String(i).padStart(2, '0');
+  for (const digits of allDigitKeys()) {
     obj[digits] = appState.wordlist[digits] ?? '';
   }
   downloadFile(JSON.stringify(obj, null, 2), 'major-system-wordlist.json', 'application/json');
@@ -572,13 +580,14 @@ export function updateMasteryColors(): void {
     const key = cell.getAttribute('data-key');
     if (!key) return;
     const total = (MODES.quiz.scores[key] ?? 0) + (MODES.reverse.scores[key] ?? 0) + (MODES.mixed.scores[key] ?? 0);
+    // Thresholds: [-3, 0, 3, 8] → tiers: ≤-3 struggling, -2..-1 weak, 0..3 neutral, 4..8 good, 9+ mastered
     const [t0, t1, t2, t3] = MASTERY_THRESHOLDS;
     let cls: string;
-    if (total <= t0) cls = 'mastery-0';
-    else if (total < t1) cls = 'mastery-1';
+    if      (total <= t0) cls = 'mastery-0';
+    else if (total <  t1) cls = 'mastery-1';
     else if (total <= t2) cls = 'mastery-2';
     else if (total <= t3) cls = 'mastery-3';
-    else cls = 'mastery-4';
+    else                  cls = 'mastery-4';
     cell.className = cell.className.replace(/mastery-\d/g, '').trim() + ' ' + cls;
   });
 }

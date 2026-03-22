@@ -13,8 +13,17 @@ from trainer.validator import DIGIT_TO_SOUNDS, word_to_digits
 
 from .models import QuizState
 
-_wordlist = load_or_generate_wordlist()
+# Lazy-init singletons — never invalidated; the underlying WordNet data is
+# static, so these stay valid for the lifetime of the process.
+_wordlist: dict | None = None
 _candidate_map: dict | None = None
+
+
+def _get_wordlist():
+    global _wordlist
+    if _wordlist is None:
+        _wordlist = load_or_generate_wordlist()
+    return _wordlist
 
 
 def _get_candidate_map():
@@ -47,7 +56,7 @@ def index_view(request):
 
 @require_GET
 def wordlist_view(request):
-    return JsonResponse(_wordlist)
+    return JsonResponse(_get_wordlist())
 
 
 @require_GET
@@ -90,6 +99,13 @@ _VALID_THEMES = {'dark', 'light', 'oled', 'high-contrast'}
 
 
 def state_view(request):
+    """GET returns all quiz state fields as JSON; POST accepts a partial update.
+
+    Identifies the user by auth session (logged in) or IP address (anonymous).
+    POST body is a JSON object with any subset of _STATE_KEYS; unrecognised
+    keys are silently ignored.  Returns 413 if the payload exceeds
+    MAX_STATE_PAYLOAD bytes.
+    """
     state = get_quiz_state(request)
 
     if request.method == 'GET':
@@ -106,7 +122,7 @@ def state_view(request):
 
     if request.method == 'POST':
         if len(request.body) > MAX_STATE_PAYLOAD:
-            return JsonResponse({'error': 'Payload too large'}, status=413)
+            return JsonResponse({'error': f'Payload too large (limit {MAX_STATE_PAYLOAD} bytes)'}, status=413)
 
         try:
             data = json.loads(request.body)
@@ -143,7 +159,7 @@ def state_view(request):
 
 @require_GET
 def candidates_view(request, digits):
-    if not (len(digits) == 2 and digits.isdigit()):
+    if not (len(digits) in (1, 2) and digits.isdigit()):
         return JsonResponse({'error': 'Invalid digits'}, status=400)
     candidates = _get_candidate_map().get(digits, [])
     return JsonResponse(sorted(candidates, key=lambda w: (len(w), w)), safe=False)

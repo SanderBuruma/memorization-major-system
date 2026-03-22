@@ -50,7 +50,7 @@ export interface AllModes {
   consonant: QuizMode<ConsonantQuizItem>;
 }
 
-export interface StateField { key: string; get(): unknown; set(v: unknown): void; }
+export interface StateField { key: string; get(): unknown; set(v: unknown): void; localOnly?: boolean; }
 
 export interface ServerState {
   user: string | null;

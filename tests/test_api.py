@@ -15,16 +15,16 @@ import json
 
 
 class TestWordlistAPI(TestCase):
-    def test_wordlist_returns_100_entries(self):
+    def test_wordlist_returns_110_entries(self):
         resp = self.client.get('/api/wordlist')
         self.assertEqual(resp.status_code, 200)
         data = resp.json()
-        self.assertEqual(len(data), 100)
+        self.assertEqual(len(data), 110)
 
-    def test_wordlist_keys_are_two_digit_strings(self):
+    def test_wordlist_keys_include_single_and_double_digits(self):
         resp = self.client.get('/api/wordlist')
         data = resp.json()
-        expected_keys = {f"{i:02d}" for i in range(100)}
+        expected_keys = {str(i) for i in range(10)} | {f"{i:02d}" for i in range(100)}
         self.assertEqual(set(data.keys()), expected_keys)
 
     def test_mapping_returns_10_entries(self):

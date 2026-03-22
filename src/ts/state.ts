@@ -45,7 +45,7 @@ export const MODES: AllModes = {
     pickItem(k) { return { digits: k, word: appState.wordlist[k] }; },
     getPrompt(item) { return item.word; },
     getAnswer(item) { return item.digits; },
-    normalize(raw) { return raw.padStart(2, '0'); },
+    normalize(raw, item) { return raw.padStart(item?.digits.length ?? 2, '0'); },
     formatCorrect(item) { return item.digits; },
     placeholder: 'type the number...',
     historyKey(item) { return item.digits; },
@@ -62,17 +62,17 @@ export const MODES: AllModes = {
     },
     getPrompt(item) { return item.mode === 'forward' ? item.digits : item.word; },
     getAnswer(item) { return item.mode === 'forward' ? item.word.toLowerCase() : item.digits; },
-    normalize(raw, item) { return item?.mode === 'forward' ? raw.toLowerCase() : raw.padStart(2, '0'); },
+    normalize(raw, item) { return item?.mode === 'forward' ? raw.toLowerCase() : raw.padStart(item?.digits.length ?? 2, '0'); },
     formatCorrect(item) { return item.mode === 'forward' ? `"${item.word.toLowerCase()}"` : item.digits; },
     placeholder: 'type your answer...',
     historyKey(item) { return item.digits; },
     startExtra(item, inp) {
       if (item.mode === 'forward') {
         inp.placeholder = 'type the noun...';
-        inp.maxLength = 524288;
+        inp.maxLength = 524288; // browser default — unconstrained free-text input
       } else {
         inp.placeholder = 'type the number...';
-        inp.maxLength = 2;
+        inp.maxLength = item.digits.length;
       }
     },
   },
@@ -105,7 +105,7 @@ for (const name of Object.keys(MODES) as (keyof AllModes)[]) {
   STATE_FIELDS.push(
     { key: mode.persistScores, get() { return mode.scores; }, set(v) { mode.scores = (v as typeof mode.scores) ?? {}; } },
     { key: mode.persistHistory, get() { return mode.history; }, set(v) { mode.history = (v as typeof mode.history) ?? []; } },
-    { key: mode.persistGuesses, get() { return mode.recentGuesses; }, set(v) { mode.recentGuesses = (v as typeof mode.recentGuesses) ?? []; } },
+    { key: mode.persistGuesses, get() { return mode.recentGuesses; }, set(v) { mode.recentGuesses = (v as typeof mode.recentGuesses) ?? []; }, localOnly: true },
   );
 }
 

@@ -11,15 +11,20 @@ let _syncTimer: ReturnType<typeof setTimeout> | null = null;
 
 export function saveState(): void {
   const state: Record<string, unknown> = {};
-  STATE_FIELDS.forEach((field) => { state[field.key] = field.get(); });
+  const serverState: Record<string, unknown> = {};
+  STATE_FIELDS.forEach((field) => {
+    state[field.key] = field.get();
+    if (!field.localOnly) serverState[field.key] = field.get();
+  });
   state.theme = document.documentElement.getAttribute('data-theme') ?? 'dark';
+  serverState.theme = state.theme;
   localStorage.setItem('quizState', JSON.stringify(state));
   if (_syncTimer) clearTimeout(_syncTimer);
   _syncTimer = setTimeout(() => {
     fetch('/api/state', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
-      body: JSON.stringify(state),
+      body: JSON.stringify(serverState),
     }).catch(() => {});
   }, 1000);
   updateMasteryColors();

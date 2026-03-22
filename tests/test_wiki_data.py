@@ -48,8 +48,8 @@ class TestWordlistCoversWikiKeys(TestCase):
         super().setUpClass()
         cls.wordlist = load_or_generate_wordlist()
 
-    def test_wordlist_has_100_entries(self):
-        self.assertEqual(len(self.wordlist), 100)
+    def test_wordlist_has_110_entries(self):
+        self.assertEqual(len(self.wordlist), 110)
 
     def test_all_word_example_keys_present(self):
         """Keys used by wordExamples in the wiki."""
