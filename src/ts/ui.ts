@@ -200,10 +200,11 @@ export function renderRef(): void {
 
 const quizSections = ['quiz', 'reverse', 'mixed', 'consonant', 'gridquiz'];
 
-export function showSection(name: string): void {
+export function showSection(name: string, pushHash = true): void {
   if (gqTimerInterval) { clearInterval(gqTimerInterval); gqTimerInterval = null; }
   document.querySelectorAll('.section').forEach((section) => { section.classList.remove('active'); });
   document.getElementById(`section-${name}`)!.classList.add('active');
+  if (pushHash && location.hash !== `#${name}`) history.pushState(null, '', `#${name}`);
   document.querySelectorAll('.topbar-nav button').forEach((btn) => { btn.classList.remove('active'); });
   const isQuiz = quizSections.includes(name);
   if (isQuiz) {

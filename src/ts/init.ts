@@ -52,6 +52,15 @@ async function init(): Promise<void> {
   renderConstantButtons();
   updateMasteryColors();
   if (!appState.tutorialSeen) showSection('tutorial');
+  else {
+    const hash = location.hash.slice(1);
+    if (hash && document.getElementById(`section-${hash}`)) showSection(hash, false);
+  }
+
+  window.addEventListener('popstate', () => {
+    const hash = location.hash.slice(1);
+    if (hash && document.getElementById(`section-${hash}`)) showSection(hash, false);
+  });
 
   try {
     const results = await Promise.all([
