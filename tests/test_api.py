@@ -254,6 +254,33 @@ class TestActivityLogAPI(TestCase):
         self.assertEqual(data['activityLog'], {'2026-03-21': 7})
 
 
+class TestURLConfig(TestCase):
+    def test_all_url_patterns_are_unique(self):
+        from django.urls import get_resolver, URLPattern
+        all_patterns = []
+        def collect(resolver, prefix=''):
+            for p in resolver.url_patterns:
+                route = prefix + (p.pattern.regex.pattern if hasattr(p.pattern, 'regex') else p.pattern._route)
+                if isinstance(p, URLPattern):
+                    all_patterns.append(route)
+                else:
+                    collect(p, route)
+        collect(get_resolver())
+        self.assertEqual(len(all_patterns), len(set(all_patterns)), f'Duplicate URL patterns: {all_patterns}')
+
+    def test_all_url_names_are_unique(self):
+        from django.urls import get_resolver, URLPattern
+        names = []
+        def collect(resolver):
+            for p in resolver.url_patterns:
+                if isinstance(p, URLPattern) and p.name:
+                    names.append(p.name)
+                elif not isinstance(p, URLPattern):
+                    collect(p)
+        collect(get_resolver())
+        self.assertEqual(len(names), len(set(names)), f'Duplicate URL names: {names}')
+
+
 class TestAuth(TestCase):
     def _register(self, username='testuser', password='Str0ngP@ss!'):
         return self.client.post('/register/', {

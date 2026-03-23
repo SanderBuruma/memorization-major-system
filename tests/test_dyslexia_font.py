@@ -278,5 +278,45 @@ class TestDyslexiaFontInitJS(unittest.TestCase):
         self.assertIn("dyslexia-font", body)
 
 
+class TestDyslexiaFontCSS(unittest.TestCase):
+    """Compiled CSS applies OpenDyslexic universally via * selector."""
+
+    @classmethod
+    def setUpClass(cls):
+        css_path = os.path.join(os.path.dirname(__file__), '..', 'static', 'css', 'app.css')
+        with open(css_path, encoding='utf-8') as f:
+            cls.css = f.read()
+
+    def test_dyslexia_star_selector(self):
+        """The dyslexia-font rule must use a * selector so all elements get the font."""
+        import re
+        # Compiled CSS should contain a rule like: .dyslexia-font *{font-family:OpenDyslexic...}
+        # or body.dyslexia-font *,body.dyslexia-font{...}
+        self.assertTrue(
+            re.search(r'\.dyslexia-font\s*\*', self.css) or
+            re.search(r'\.dyslexia-font[^}]*,\s*\.dyslexia-font\s*\*', self.css),
+            'dyslexia-font CSS must use * selector to apply font universally',
+        )
+
+    def test_no_element_specific_font_family_overrides(self):
+        """No SCSS file should set font-family on specific elements outside the dyslexia rule
+        (except body's base font and inherit declarations)."""
+        import re
+        scss_dir = os.path.join(os.path.dirname(__file__), '..', 'src', 'scss')
+        for fname in os.listdir(scss_dir):
+            if not fname.endswith('.scss'):
+                continue
+            with open(os.path.join(scss_dir, fname), encoding='utf-8') as f:
+                content = f.read()
+            for match in re.finditer(r'font-family:\s*(.+?);', content):
+                value = match.group(1).strip()
+                if value == 'inherit':
+                    continue
+                # The only non-inherit font-family should be in _base.scss on body or the dyslexia rule
+                if fname == '_base.scss':
+                    continue
+                self.fail(f'{fname} sets font-family: {value} — risks overriding dyslexia font')
+
+
 if __name__ == "__main__":
     unittest.main()
