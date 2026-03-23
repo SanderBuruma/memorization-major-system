@@ -84,12 +84,16 @@ def encode_view(request):
 _FIELD_MAP = {
     'quizScores': ('quiz_scores', dict),
     'quizHistory': ('quiz_history', list),
+    'quizGuesses': ('quiz_guesses', list),
     'reverseScores': ('reverse_scores', dict),
     'reverseHistory': ('reverse_history', list),
+    'reverseGuesses': ('reverse_guesses', list),
     'mixedScores': ('mixed_scores', dict),
     'mixedHistory': ('mixed_history', list),
+    'mixedGuesses': ('mixed_guesses', list),
     'conScores': ('con_scores', dict),
     'conHistory': ('con_history', list),
+    'conGuesses': ('con_guesses', list),
     'customWords': ('custom_words', dict),
     'activityLog': ('activity_log', dict),
 }

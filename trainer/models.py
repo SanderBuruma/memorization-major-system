@@ -11,12 +11,16 @@ class QuizState(models.Model):
 
     quiz_scores = models.JSONField(default=dict)
     quiz_history = models.JSONField(default=list)
+    quiz_guesses = models.JSONField(default=list)
     reverse_scores = models.JSONField(default=dict)
     reverse_history = models.JSONField(default=list)
+    reverse_guesses = models.JSONField(default=list)
     mixed_scores = models.JSONField(default=dict)
     mixed_history = models.JSONField(default=list)
+    mixed_guesses = models.JSONField(default=list)
     con_scores = models.JSONField(default=dict)
     con_history = models.JSONField(default=list)
+    con_guesses = models.JSONField(default=list)
     custom_words = models.JSONField(default=dict)
 
     activity_log = models.JSONField(default=dict)
