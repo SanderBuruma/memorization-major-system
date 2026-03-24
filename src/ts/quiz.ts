@@ -13,6 +13,11 @@ function recordGuess<T extends QuizItem>(mode: QuizMode<T>, correct: boolean): v
   if (mode.recentGuesses.length > MAX_RECENT_GUESSES) mode.recentGuesses.shift();
 }
 
+/** Higher scores incur steeper penalties: floor(score/4) + 1, minimum 1. */
+function mistakePenalty(score: number): number {
+  return Math.max(1, Math.floor(score / 4) + 1);
+}
+
 /** Countdown seconds by mastery score: score 1 = 15s, score 2 = 10s, ...; scores above 7 use 3s. */
 const TIME_LIMITS = [15, 10, 6, 5, 4, 4, 3];
 
@@ -73,7 +78,8 @@ function timeoutMode<T extends QuizItem>(mode: QuizMode<T>): void {
   (document.getElementById(mode.submitId) as HTMLButtonElement).disabled = true;
 
   const key = mode.historyKey(mode.current);
-  mode.scores[key] = (mode.scores[key] ?? 0) - 1;
+  const cur = mode.scores[key] ?? 0;
+  mode.scores[key] = cur - mistakePenalty(cur);
   appState.score.total++;
   logActivity();
 
@@ -178,7 +184,8 @@ export function checkMode<T extends QuizItem>(mode: QuizMode<T>): void {
     fb.className = 'feedback correct';
     fb.textContent = 'Correct!';
   } else {
-    mode.scores[key] = (mode.scores[key] ?? 0) - 1;
+    const cur = mode.scores[key] ?? 0;
+    mode.scores[key] = cur - mistakePenalty(cur);
     fb.className = 'feedback incorrect';
     fb.textContent = `Incorrect. Answer: ${mode.formatCorrect(mode.current)}`;
   }
