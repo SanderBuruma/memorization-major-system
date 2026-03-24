@@ -1,4 +1,4 @@
-import { appState, MODES, MASTERY_THRESHOLDS, rebuildWordlist, logActivity } from './state';
+import { appState, MODES, rebuildWordlist, logActivity } from './state';
 import { getCookie, saveState } from './persistence';
 import { startQuiz, startReverse, startMixed, startCon,
          checkQuiz, checkReverse, checkMixed, checkCon } from './quiz';
@@ -574,21 +574,44 @@ export function updateAccuracy<T extends QuizItem>(mode: QuizMode<T>): void {
   el.textContent = `Last ${guesses.length}: ${correct}/${guesses.length} (${pct}%)`;
 }
 
+type RGB = [number, number, number];
+
+function parseColor(s: string): RGB {
+  const m = s.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
+  if (m) return [+m[1], +m[2], +m[3]];
+  let h = s.replace('#', '').trim();
+  if (h.length === 3) h = h[0]+h[0]+h[1]+h[1]+h[2]+h[2];
+  return [parseInt(h.slice(0,2),16), parseInt(h.slice(2,4),16), parseInt(h.slice(4,6),16)];
+}
+
+function lerpRGB(a: RGB, b: RGB, t: number): RGB {
+  return [Math.round(a[0]+(b[0]-a[0])*t), Math.round(a[1]+(b[1]-a[1])*t), Math.round(a[2]+(b[2]-a[2])*t)];
+}
+
+const GRADIENT_YELLOW: RGB = [224, 160, 80];
+const GRADIENT_RED: RGB = [239, 83, 80];
+const GRADIENT_GREEN: RGB = [76, 218, 106];
+
 export function updateMasteryColors(): void {
   if (!appState.keys.length) return;
+  const surface = parseColor(getComputedStyle(document.documentElement).getPropertyValue('--bg-surface'));
   const cells = document.querySelectorAll('#grid .grid-cell');
   cells.forEach((cell) => {
     const key = cell.getAttribute('data-key');
     if (!key) return;
-    const total = (MODES.quiz.scores[key] ?? 0) + (MODES.reverse.scores[key] ?? 0) + (MODES.mixed.scores[key] ?? 0);
-    // Thresholds: [-3, 0, 3, 8] → tiers: ≤-3 struggling, -2..-1 weak, 0..3 neutral, 4..8 good, 9+ mastered
-    const [t0, t1, t2, t3] = MASTERY_THRESHOLDS;
-    let cls: string;
-    if      (total <= t0) cls = 'mastery-0';
-    else if (total <  t1) cls = 'mastery-1';
-    else if (total <= t2) cls = 'mastery-2';
-    else if (total <= t3) cls = 'mastery-3';
-    else                  cls = 'mastery-4';
-    cell.className = cell.className.replace(/mastery-\d/g, '').trim() + ' ' + cls;
+    const raw = (MODES.quiz.scores[key] ?? 0) + (MODES.reverse.scores[key] ?? 0) + (MODES.mixed.scores[key] ?? 0);
+    const score = Math.max(-10, Math.min(10, raw));
+    const el = cell as HTMLElement;
+    el.className = el.className.replace(/mastery-\d/g, '').trim();
+    if (score === 0) { el.style.backgroundColor = ''; return; }
+    let bg: RGB;
+    if (score > 0) {
+      bg = lerpRGB(surface, GRADIENT_GREEN, Math.sqrt(score / 10));
+    } else if (score >= -5) {
+      bg = lerpRGB(surface, GRADIENT_YELLOW, Math.sqrt(-score / 5));
+    } else {
+      bg = lerpRGB(GRADIENT_YELLOW, GRADIENT_RED, Math.sqrt((-score - 5) / 5));
+    }
+    el.style.backgroundColor = `rgb(${bg[0]},${bg[1]},${bg[2]})`;
   });
 }
