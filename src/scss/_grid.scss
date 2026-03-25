@@ -123,10 +123,3 @@
   margin-top: 16px;
   color: var(--text-primary);
 }
-
-// Mastery grid colors (tiers 0-4: struggling → mastered)
-.mastery-0 { background-color: var(--bg-mastery-0) !important; color: var(--color-mastery-0); }
-.mastery-1 { background-color: var(--bg-mastery-1) !important; color: var(--color-mastery-1); }
-.mastery-2 { /* neutral tier — no highlight, inherits default grid-cell styling */ }
-.mastery-3 { background-color: var(--bg-mastery-3) !important; color: var(--color-mastery-3); }
-.mastery-4 { background-color: var(--bg-mastery-4) !important; color: var(--color-mastery-4); }

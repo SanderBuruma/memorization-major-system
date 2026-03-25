@@ -69,11 +69,12 @@
     flex-shrink: 0;
   }
 
-  .m0 .bar-fill { background: var(--color-mastery-0); }
-  .m1 .bar-fill { background: var(--color-mastery-1); }
+  // Bar fill colors — hardcoded per theme (legacy mastery vars removed)
+  .m0 .bar-fill { background: #ef5350; }
+  .m1 .bar-fill { background: #e0a050; }
   .m2 .bar-fill { background: var(--color-primary); }
-  .m3 .bar-fill { background: var(--color-mastery-3); }
-  .m4 .bar-fill { background: var(--color-mastery-4); }
+  .m3 .bar-fill { background: #8cbf60; }
+  .m4 .bar-fill { background: #4cda6a; }
 
   .cov-grid {
     display: grid;

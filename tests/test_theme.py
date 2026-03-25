@@ -16,11 +16,9 @@ from pathlib import Path
 CSS_PATH = Path(__file__).resolve().parent.parent / "src" / "scss" / "_variables.scss"
 
 # Variable classifications
-BG_VARS = {"--bg-page", "--bg-surface", "--bg-nav-hover", "--bg-success", "--bg-error", "--bg-stripe",
-           "--bg-mastery-0", "--bg-mastery-1", "--bg-mastery-3", "--bg-mastery-4"}
+BG_VARS = {"--bg-page", "--bg-surface", "--bg-nav-hover", "--bg-success", "--bg-error", "--bg-stripe"}
 TEXT_VARS = {"--text-primary", "--text-secondary", "--text-muted"}
-FG_ACCENT_VARS = {"--color-primary", "--color-primary-hover", "--color-success", "--color-error",
-                  "--color-mastery-0", "--color-mastery-1", "--color-mastery-3", "--color-mastery-4"}
+FG_ACCENT_VARS = {"--color-primary", "--color-primary-hover", "--color-success", "--color-error"}
 # Colors used on top of --color-primary backgrounds (not page backgrounds)
 ON_PRIMARY_VARS = {"--color-on-primary"}
 NON_COLOR_VARS = {"--shadow-hover", "--border-color", "--border-input",

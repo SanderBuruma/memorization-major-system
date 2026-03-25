@@ -123,15 +123,14 @@ ${wordExamples(['00', '14', '27', '53', '91'])}
       {
         title: 'Mastery Colors',
         content: `
-<p>Grid cells are color-coded based on how well you know each number across the quiz modes:</p>
+<p>Grid cells are color-coded based on how well you know each number across the quiz modes. The color shifts continuously based on your combined score:</p>
 <ul>
-  <li><strong style="color:var(--color-mastery-0)">Red</strong> — not yet practiced or very low score</li>
-  <li><strong style="color:var(--color-mastery-1)">Orange</strong> — some practice, still shaky</li>
-  <li><strong style="color:var(--color-primary)">Blue</strong> — moderate mastery</li>
-  <li><strong style="color:var(--color-mastery-3)">Green</strong> — good mastery</li>
-  <li><strong style="color:var(--color-mastery-4)">Bright green</strong> — fully mastered</li>
+  <li><strong style="color:#ef5350">Red</strong> — struggling (very negative score)</li>
+  <li><strong style="color:#e0a050">Yellow/Orange</strong> — needs work (moderately negative)</li>
+  <li><strong style="color:var(--color-primary)">Blue</strong> — neutral (near zero)</li>
+  <li><strong style="color:#4cda6a">Green</strong> — good mastery (positive score)</li>
 </ul>
-<p>Your combined score from the Number→Word, Word→Number, and Mixed quizzes determines each cell's level. Keep quizzing to turn the whole grid green!</p>`,
+<p>Unpracticed cells (score 0) show the default theme background. Keep quizzing to shift every cell from red through blue to green!</p>`,
       },
     ],
   },
