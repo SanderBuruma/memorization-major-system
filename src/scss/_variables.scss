@@ -63,10 +63,10 @@ $mobile-breakpoint: 700px;
   --bg-mastery-3: #e8f5e9; --color-mastery-3: #558b2f;
   --bg-mastery-4: #c8e6c9; --color-mastery-4: #2e7d32;
   /* OKLCH mastery: L as percentage, C as decimal */
-  --mastery-bg-L: 75%;
-  --mastery-bg-C: 0.12;
-  --mastery-fg-L: 30%;
-  --mastery-fg-C: 0.14;
+  --mastery-bg-L: 80%;
+  --mastery-bg-C: 0.10;
+  --mastery-fg-L: 28%;
+  --mastery-fg-C: 0.16;
 }
 
 [data-theme="oled"] {
@@ -94,10 +94,10 @@ $mobile-breakpoint: 700px;
   --bg-mastery-3: #001a00; --color-mastery-3: #8cbf60;
   --bg-mastery-4: #001a0a; --color-mastery-4: #4cda6a;
   /* OKLCH mastery: L as percentage, C as decimal */
-  --mastery-bg-L: 25%;
-  --mastery-bg-C: 0.16;
-  --mastery-fg-L: 85%;
-  --mastery-fg-C: 0.18;
+  --mastery-bg-L: 35%;
+  --mastery-bg-C: 0.14;
+  --mastery-fg-L: 80%;
+  --mastery-fg-C: 0.16;
 }
 
 [data-theme="high-contrast"] {
@@ -125,8 +125,8 @@ $mobile-breakpoint: 700px;
   --bg-mastery-3: #001a00; --color-mastery-3: #00ff00;
   --bg-mastery-4: #001a0a; --color-mastery-4: #00ff66;
   /* OKLCH mastery: L as percentage, C as decimal */
-  --mastery-bg-L: 20%;
-  --mastery-bg-C: 0.22;
-  --mastery-fg-L: 90%;
-  --mastery-fg-C: 0.24;
+  --mastery-bg-L: 22%;
+  --mastery-bg-C: 0.18;
+  --mastery-fg-L: 92%;
+  --mastery-fg-C: 0.20;
 }
