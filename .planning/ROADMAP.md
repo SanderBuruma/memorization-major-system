@@ -25,7 +25,10 @@
   2. Negative scores show red/yellow hues, positive scores show blue/green hues, score 0 shows the plain theme background with no color applied
   3. The score-to-hue progression is monotonic: score +5 sits visually between +1 and +10, score -5 sits visually between -1 and -10
   4. Cell font color uses the same hue as the background at a contrasting lightness, remaining readable on dark theme background
-**Plans**: TBD
+**Plans:** 2 plans
+Plans:
+- [ ] 01-01-PLAN.md — CSS custom properties + scoreToHue test scaffold
+- [ ] 01-02-PLAN.md — TypeScript OKLCH implementation + visual verification
 
 ### Phase 2: Theme Integration
 **Goal**: Mastery colors work correctly across all four themes and update immediately on theme switch
@@ -53,7 +56,7 @@
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Core Color Computation | 0/? | Not started | - |
+| 1. Core Color Computation | 0/2 | Planning complete | - |
 | 2. Theme Integration | 0/? | Not started | - |
 | 3. Cleanup | 0/? | Not started | - |
 
