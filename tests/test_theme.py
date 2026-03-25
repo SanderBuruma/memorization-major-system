@@ -24,7 +24,8 @@ FG_ACCENT_VARS = {"--color-primary", "--color-primary-hover", "--color-success",
 # Colors used on top of --color-primary backgrounds (not page backgrounds)
 ON_PRIMARY_VARS = {"--color-on-primary"}
 NON_COLOR_VARS = {"--shadow-hover", "--border-color", "--border-input",
-                  "--color-skip", "--color-skip-hover"}
+                  "--color-skip", "--color-skip-hover",
+                  "--mastery-bg-L", "--mastery-bg-C", "--mastery-fg-L", "--mastery-fg-C"}
 ALL_CLASSIFIED = BG_VARS | TEXT_VARS | FG_ACCENT_VARS | ON_PRIMARY_VARS | NON_COLOR_VARS
 
 DARK_BG_MAX_LUM = 0.15
