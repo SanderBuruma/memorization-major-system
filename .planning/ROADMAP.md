@@ -50,7 +50,9 @@ Plans:
   1. The profile section activity bars and any other components that used the old mastery CSS vars still render correctly after the legacy SCSS vars and CSS classes are deleted
   2. No references to lerpRGB(), GRADIENT_GREEN, GRADIENT_YELLOW, GRADIENT_RED, or parseColor() remain in the codebase
   3. The build (tsc --noEmit + sass compilation) passes cleanly with no errors after cleanup
-**Plans**: TBD
+**Plans:** 1 plan
+Plans:
+- [ ] 03-01-PLAN.md — Migrate consumers + delete legacy SCSS/JS dead code
 
 ---
 
@@ -60,7 +62,7 @@ Plans:
 |-------|----------------|--------|-----------|
 | 1. Core Color Computation | 2/2 | Complete | 2026-03-25 |
 | 2. Theme Integration | 0/1 | Not started | - |
-| 3. Cleanup | 0/? | Not started | - |
+| 3. Cleanup | 0/1 | Not started | - |
 
 ---
 *Roadmap created: 2026-03-25*
