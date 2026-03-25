@@ -35,10 +35,12 @@ Plans:
 **Depends on**: Phase 1
 **Requirements**: THEME-01, THEME-02, THEME-03
 **Success Criteria** (what must be TRUE):
-  1. Switching between dark, light, and oled themes immediately re-renders all scored grid cells with the correct per-theme brightness and chroma — no stale colors
+  1. Switching between all four themes immediately re-renders all scored grid cells with the correct per-theme brightness and chroma — no stale colors
   2. Per-theme OKLCH lightness and chroma constants are defined as CSS custom properties in _variables.scss (not hardcoded in JS)
-  3. The high-contrast theme does not inject computed OKLCH inline styles — cells display correctly using the existing CSS class approach
-**Plans**: TBD
+  3. All themes including high-contrast use the same OKLCH hue-rotation system with appropriate L/C values — no bypassing or special-casing
+**Plans:** 1 plan
+Plans:
+- [ ] 02-01-PLAN.md — Calibrate per-theme L/C values + wire setTheme()
 
 ### Phase 3: Cleanup
 **Goal**: Legacy RGB lerp code and mastery CSS classes are fully removed with no regressions
@@ -57,7 +59,7 @@ Plans:
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Core Color Computation | 2/2 | Complete | 2026-03-25 |
-| 2. Theme Integration | 0/? | Not started | - |
+| 2. Theme Integration | 0/1 | Not started | - |
 | 3. Cleanup | 0/? | Not started | - |
 
 ---
