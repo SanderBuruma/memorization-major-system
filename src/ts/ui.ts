@@ -574,24 +574,6 @@ export function updateAccuracy<T extends QuizItem>(mode: QuizMode<T>): void {
   el.textContent = `Last ${guesses.length}: ${correct}/${guesses.length} (${pct}%)`;
 }
 
-type RGB = [number, number, number];
-
-function parseColor(s: string): RGB {
-  const m = s.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
-  if (m) return [+m[1], +m[2], +m[3]];
-  let h = s.replace('#', '').trim();
-  if (h.length === 3) h = h[0]+h[0]+h[1]+h[1]+h[2]+h[2];
-  return [parseInt(h.slice(0,2),16), parseInt(h.slice(2,4),16), parseInt(h.slice(4,6),16)];
-}
-
-function lerpRGB(a: RGB, b: RGB, t: number): RGB {
-  return [Math.round(a[0]+(b[0]-a[0])*t), Math.round(a[1]+(b[1]-a[1])*t), Math.round(a[2]+(b[2]-a[2])*t)];
-}
-
-const GRADIENT_YELLOW: RGB = [224, 160, 80];
-const GRADIENT_RED: RGB = [239, 83, 80];
-const GRADIENT_GREEN: RGB = [76, 218, 106];
-
 function scoreToHue(score: number): number {
   if (score < 0) {
     if (score >= -5) {
@@ -629,7 +611,6 @@ export function updateMasteryColors(): void {
               + (MODES.mixed.scores[key] ?? 0);
     const score = Math.max(-10, Math.min(10, raw));
     const el = cell as HTMLElement;
-    el.className = el.className.replace(/mastery-\d/g, '').trim();
     if (score === 0) {
       el.style.backgroundColor = '';
       el.style.color = '';
