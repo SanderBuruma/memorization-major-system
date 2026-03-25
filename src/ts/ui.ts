@@ -592,26 +592,51 @@ const GRADIENT_YELLOW: RGB = [224, 160, 80];
 const GRADIENT_RED: RGB = [239, 83, 80];
 const GRADIENT_GREEN: RGB = [76, 218, 106];
 
+function scoreToHue(score: number): number {
+  if (score < 0) {
+    if (score >= -5) {
+      const t = Math.sqrt((-score) / 5);
+      return 264 - t * (264 - 90);
+    }
+    const t = Math.sqrt((-score - 5) / 5);
+    return 90 - t * (90 - 27);
+  }
+  const t = Math.sqrt(score / 10);
+  return 264 - t * (264 - 145);
+}
+
+interface MasteryConstants { bgL: string; bgC: string; fgL: string; fgC: string; }
+
+function getMasteryConstants(): MasteryConstants {
+  const s = getComputedStyle(document.documentElement);
+  return {
+    bgL: s.getPropertyValue('--mastery-bg-L').trim(),
+    bgC: s.getPropertyValue('--mastery-bg-C').trim(),
+    fgL: s.getPropertyValue('--mastery-fg-L').trim(),
+    fgC: s.getPropertyValue('--mastery-fg-C').trim(),
+  };
+}
+
 export function updateMasteryColors(): void {
   if (!appState.keys.length) return;
-  const surface = parseColor(getComputedStyle(document.documentElement).getPropertyValue('--bg-surface'));
+  const { bgL, bgC, fgL, fgC } = getMasteryConstants();
   const cells = document.querySelectorAll('#grid .grid-cell');
   cells.forEach((cell) => {
     const key = cell.getAttribute('data-key');
     if (!key) return;
-    const raw = (MODES.quiz.scores[key] ?? 0) + (MODES.reverse.scores[key] ?? 0) + (MODES.mixed.scores[key] ?? 0);
+    const raw = (MODES.quiz.scores[key] ?? 0)
+              + (MODES.reverse.scores[key] ?? 0)
+              + (MODES.mixed.scores[key] ?? 0);
     const score = Math.max(-10, Math.min(10, raw));
     const el = cell as HTMLElement;
     el.className = el.className.replace(/mastery-\d/g, '').trim();
-    if (score === 0) { el.style.backgroundColor = ''; return; }
-    let bg: RGB;
-    if (score > 0) {
-      bg = lerpRGB(surface, GRADIENT_GREEN, Math.sqrt(score / 10));
-    } else if (score >= -5) {
-      bg = lerpRGB(surface, GRADIENT_YELLOW, Math.sqrt(-score / 5));
-    } else {
-      bg = lerpRGB(GRADIENT_YELLOW, GRADIENT_RED, Math.sqrt((-score - 5) / 5));
+    if (score === 0) {
+      el.style.backgroundColor = '';
+      el.style.color = '';
+      return;
     }
-    el.style.backgroundColor = `rgb(${bg[0]},${bg[1]},${bg[2]})`;
+    const H = scoreToHue(score);
+    el.style.backgroundColor = `oklch(${bgL} ${bgC} ${H})`;
+    el.style.color = `oklch(${fgL} ${fgC} ${H})`;
   });
 }
