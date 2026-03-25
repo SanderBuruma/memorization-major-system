@@ -10,8 +10,8 @@ Requirements for this milestone. Each maps to roadmap phases.
 ### Color Computation
 
 - [x] **COLOR-01**: Grid cells use OKLCH color space with constant lightness and chroma, varying only hue based on mastery score
-- [ ] **COLOR-02**: Score-to-hue mapping follows red (score -10) → yellow (~-5) → blue (±1) → green (+10), with score 0 showing theme background (no color)
-- [ ] **COLOR-03**: Font color uses same hue as cell background at a contrasting lightness value for readability
+- [x] **COLOR-02**: Score-to-hue mapping follows red (score -10) → yellow (~-5) → blue (±1) → green (+10), with score 0 showing theme background (no color)
+- [x] **COLOR-03**: Font color uses same hue as cell background at a contrasting lightness value for readability
 - [x] **COLOR-04**: Score-to-hue curve uses sqrt easing for better perceptual separation at low scores
 
 ### Theme Integration
@@ -52,8 +52,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | Requirement | Phase | Status |
 |-------------|-------|--------|
 | COLOR-01 | Phase 1 | Complete |
-| COLOR-02 | Phase 1 | Pending |
-| COLOR-03 | Phase 1 | Pending |
+| COLOR-02 | Phase 1 | Complete |
+| COLOR-03 | Phase 1 | Complete |
 | COLOR-04 | Phase 1 | Complete |
 | THEME-01 | Phase 2 | Pending |
 | THEME-02 | Phase 2 | Pending |

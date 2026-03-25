@@ -8,7 +8,7 @@
 
 ## Phases
 
-- [ ] **Phase 1: Core Color Computation** - OKLCH hue rotation working in the dark theme
+- [x] **Phase 1: Core Color Computation** - OKLCH hue rotation working in the dark theme
 - [ ] **Phase 2: Theme Integration** - All four themes supported, theme-switch wired
 - [ ] **Phase 3: Cleanup** - Dead RGB lerp code and legacy CSS classes removed
 
@@ -28,7 +28,7 @@
 **Plans:** 2 plans
 Plans:
 - [x] 01-01-PLAN.md — CSS custom properties + scoreToHue test scaffold
-- [ ] 01-02-PLAN.md — TypeScript OKLCH implementation + visual verification
+- [x] 01-02-PLAN.md — TypeScript OKLCH implementation + visual verification
 
 ### Phase 2: Theme Integration
 **Goal**: Mastery colors work correctly across all four themes and update immediately on theme switch
@@ -56,7 +56,7 @@ Plans:
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Core Color Computation | 1/2 | In progress | - |
+| 1. Core Color Computation | 2/2 | Complete | 2026-03-25 |
 | 2. Theme Integration | 0/? | Not started | - |
 | 3. Cleanup | 0/? | Not started | - |
 
