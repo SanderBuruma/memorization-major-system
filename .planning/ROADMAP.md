@@ -27,7 +27,7 @@
   4. Cell font color uses the same hue as the background at a contrasting lightness, remaining readable on dark theme background
 **Plans:** 2 plans
 Plans:
-- [ ] 01-01-PLAN.md — CSS custom properties + scoreToHue test scaffold
+- [x] 01-01-PLAN.md — CSS custom properties + scoreToHue test scaffold
 - [ ] 01-02-PLAN.md — TypeScript OKLCH implementation + visual verification
 
 ### Phase 2: Theme Integration
@@ -56,7 +56,7 @@ Plans:
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Core Color Computation | 0/2 | Planning complete | - |
+| 1. Core Color Computation | 1/2 | In progress | - |
 | 2. Theme Integration | 0/? | Not started | - |
 | 3. Cleanup | 0/? | Not started | - |
 
