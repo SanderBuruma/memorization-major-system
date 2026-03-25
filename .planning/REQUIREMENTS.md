@@ -51,21 +51,21 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| COLOR-01 | — | Pending |
-| COLOR-02 | — | Pending |
-| COLOR-03 | — | Pending |
-| COLOR-04 | — | Pending |
-| THEME-01 | — | Pending |
-| THEME-02 | — | Pending |
-| THEME-03 | — | Pending |
-| CLEAN-01 | — | Pending |
-| CLEAN-02 | — | Pending |
+| COLOR-01 | Phase 1 | Pending |
+| COLOR-02 | Phase 1 | Pending |
+| COLOR-03 | Phase 1 | Pending |
+| COLOR-04 | Phase 1 | Pending |
+| THEME-01 | Phase 2 | Pending |
+| THEME-02 | Phase 2 | Pending |
+| THEME-03 | Phase 2 | Pending |
+| CLEAN-01 | Phase 3 | Pending |
+| CLEAN-02 | Phase 3 | Pending |
 
 **Coverage:**
 - v1 requirements: 9 total
-- Mapped to phases: 0
-- Unmapped: 9 ⚠️
+- Mapped to phases: 9
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-03-25*
-*Last updated: 2026-03-25 after initial definition*
+*Last updated: 2026-03-25 after roadmap creation — traceability complete*
