@@ -14,7 +14,7 @@ Built with Django, TypeScript, and SCSS.
 - **Mixed** — randomly alternates between Quiz and Reverse
 - **Consonant** — see a consonant sound, type the digit
 
-Each mode tracks per-number scores and history independently. A settings panel controls timer duration.
+Each mode scores based on **response time**: fast answers (under 2 seconds) earn positive scores, slow answers earn negative ones. Scores are a weighted running average of your last 10 answers per number, with recent answers weighing more. The timer pauses while you're actively typing the correct answer, so only thinking time counts. A settings panel adds an optional countdown timer that adapts to mastery.
 
 **Translate** — Convert numbers to words using your grid associations. Also supports reverse translation: paste words or sentences to see the Major System digit encoding for each word.
 

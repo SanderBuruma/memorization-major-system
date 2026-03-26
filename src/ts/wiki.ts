@@ -142,7 +142,7 @@ ${wordExamples(['00', '14', '27', '53', '91'])}
         title: 'Number → Word',
         content: `
 <p>You see a <strong>number</strong> (single- or two-digit) and must type the corresponding word from your wordlist.</p>
-<p>The quiz uses <strong>spaced repetition</strong> — numbers you get wrong or skip come back more often, while mastered numbers appear less frequently.</p>
+<p>The quiz prioritizes numbers you struggle with — those with the lowest scores come back more often, while mastered numbers appear less frequently.</p>
 <p>Press <strong>Enter</strong> to submit, or click Skip to reveal the answer and move on.</p>`,
       },
       {
@@ -220,8 +220,10 @@ ${wordExamples(['00', '14', '27', '53', '91'])}
       {
         title: 'Score Tracking',
         content: `
-<p>Your overall <strong>correct/total</strong> score is tracked across all quiz modes and persisted to the server when logged in.</p>
-<p>Each quiz mode also shows a <strong>rolling accuracy</strong> for your last 100 guesses, giving you a real-time sense of your current performance.</p>`,
+<p>Scores are based on <strong>response time</strong>. Answering in under 2 seconds earns a positive score; slower answers earn a negative score. Wrong answers receive the maximum penalty.</p>
+<p>Each number's score is a <strong>weighted running average</strong> of your last 10 answers, with recent answers counting more than older ones. This means a few fast recent answers can quickly pull up a previously low score.</p>
+<p>The response timer <strong>pauses briefly</strong> while you're actively typing the correct answer, so only thinking time counts — not typing speed.</p>
+<p>Each quiz mode also shows a <strong>rolling accuracy</strong> for your last 100 guesses.</p>`,
       },
     ],
   },

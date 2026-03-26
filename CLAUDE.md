@@ -12,6 +12,9 @@
 - Typecheck with `tsc --noEmit`; build + check via `npm run check`
 - State consolidated into `appState` object and `MODES` configs (per-quiz-mode scores, history, DOM IDs)
 - Quiz modes share a generic engine (`startMode`/`checkMode`/`skipMode`); mode-specific behavior lives in MODES config
+- Scoring is time-based: piecewise contribution (+5 at ≤0.5s, 0 at 2s, -5 at ≥10s), stored as weighted running average of up to 10 values (0.7 decay, newest weighs most)
+- Each mode has `scoreHistory: Record<string, number[]>` (raw contributions) alongside `scores: Record<string, number>` (computed weighted averages)
+- Response timer pauses for 500ms when typed text is a correct prefix of the answer (only thinking time counts)
 - Persistence uses `STATE_FIELDS` manifest — add new persisted fields there, not in saveState/loadState individually
 - HTML onclick handlers exposed via `Object.assign(window, ...)` in init.ts
 - Custom word validation: must match `/^[a-z]/`
@@ -28,7 +31,7 @@
 - `trainer/validator.py` — CMU phoneme → Major System digit encoding
 - `trainer/generator.py` — word selection + wordlist generation logic
 - `scripts/lookup.py` — CLI tool for number/word lookups
-- `tests/` — all test files (test_api, test_aria, test_associations, test_candidates, test_dyslexia_font, test_encode, test_persistence, test_pool_quiz, test_theme, test_tutorial)
+- `tests/` — all test files (test_api, test_aria, test_associations, test_candidates, test_dyslexia_font, test_encode, test_mastery_colors, test_persistence, test_pool_quiz, test_theme, test_time_scoring, test_tutorial, test_wiki_data)
 
 ## API
 - `views.py` uses `_FIELD_MAP` dict to map JS keys to model fields with type validation
