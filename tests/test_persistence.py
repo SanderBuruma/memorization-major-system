@@ -527,6 +527,98 @@ class TestActivityLogPersistence(unittest.TestCase):
         self.assertTrue(results[0]["pass"], results[0].get("error"))
 
 
+class TestResetAllScores(unittest.TestCase):
+    """resetAllScores() clears all quiz data but preserves settings."""
+
+    def test_reset_clears_all_mode_scores(self):
+        """After reset, all mode scores, history, and guesses are empty."""
+        results = _run_js_tests([{
+            "name": "reset_clears_modes",
+            "code": """
+                var confirm = function() { return true; };
+                appState.score = {correct: 50, total: 100};
+                MODES.quiz.scores = {'01': 5, '02': 3};
+                MODES.quiz.scoreHistory = {'01': [5, 3], '02': [3]};
+                MODES.quiz.history = ['01', '02'];
+                MODES.quiz.recentGuesses = [true, false];
+                MODES.reverse.scores = {'03': -2};
+                MODES.reverse.history = ['03'];
+                MODES.mixed.scores = {'04': 7};
+                MODES.consonant.scores = {'S': 2};
+
+                resetAllScores();
+
+                if(appState.score.correct !== 0) throw new Error('score.correct: ' + appState.score.correct);
+                if(appState.score.total !== 0) throw new Error('score.total: ' + appState.score.total);
+                if(Object.keys(MODES.quiz.scores).length !== 0) throw new Error('quiz scores not empty');
+                if(Object.keys(MODES.quiz.scoreHistory).length !== 0) throw new Error('quiz scoreHistory not empty');
+                if(MODES.quiz.history.length !== 0) throw new Error('quiz history not empty');
+                if(MODES.quiz.recentGuesses.length !== 0) throw new Error('quiz guesses not empty');
+                if(Object.keys(MODES.reverse.scores).length !== 0) throw new Error('reverse scores not empty');
+                if(Object.keys(MODES.mixed.scores).length !== 0) throw new Error('mixed scores not empty');
+                if(Object.keys(MODES.consonant.scores).length !== 0) throw new Error('consonant scores not empty');
+            """,
+        }])
+        self.assertTrue(results[0]["pass"], results[0].get("error"))
+
+    def test_reset_persists_to_localStorage(self):
+        """After reset, localStorage reflects zeroed scores."""
+        results = _run_js_tests([{
+            "name": "reset_persists",
+            "code": """
+                var confirm = function() { return true; };
+                appState.score = {correct: 10, total: 20};
+                MODES.quiz.scores = {'01': 5};
+                saveState();
+
+                resetAllScores();
+
+                var saved = JSON.parse(localStorage.getItem('quizState'));
+                if(saved.score.correct !== 0) throw new Error('saved score.correct: ' + saved.score.correct);
+                if(Object.keys(saved.quizScores).length !== 0) throw new Error('saved quizScores not empty');
+            """,
+        }])
+        self.assertTrue(results[0]["pass"], results[0].get("error"))
+
+    def test_reset_preserves_custom_words(self):
+        """Reset does not touch customWords."""
+        results = _run_js_tests([{
+            "name": "reset_keeps_custom_words",
+            "code": """
+                var confirm = function() { return true; };
+                appState.customWords = {'03': 'myword'};
+                MODES.quiz.scores = {'03': 5};
+                saveState();
+
+                resetAllScores();
+
+                if(appState.customWords['03'] !== 'myword') throw new Error('customWords lost');
+                var saved = JSON.parse(localStorage.getItem('quizState'));
+                if(saved.customWords['03'] !== 'myword') throw new Error('saved customWords lost');
+            """,
+        }])
+        self.assertTrue(results[0]["pass"], results[0].get("error"))
+
+    def test_reset_preserves_settings(self):
+        """Reset does not touch timedQuiz or dyslexiaFont."""
+        results = _run_js_tests([{
+            "name": "reset_keeps_settings",
+            "code": """
+                var confirm = function() { return true; };
+                appState.timedQuiz = true;
+                appState.dyslexiaFont = true;
+                MODES.quiz.scores = {'01': 5};
+                saveState();
+
+                resetAllScores();
+
+                if(appState.timedQuiz !== true) throw new Error('timedQuiz reset');
+                if(appState.dyslexiaFont !== true) throw new Error('dyslexiaFont reset');
+            """,
+        }])
+        self.assertTrue(results[0]["pass"], results[0].get("error"))
+
+
 class TestExportImportRoundTrip(unittest.TestCase):
     """CSV/JSON export format is compatible with import parsing."""
 

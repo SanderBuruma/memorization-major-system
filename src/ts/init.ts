@@ -3,7 +3,7 @@ import { getCookie, loadState, applyState, saveState } from './persistence';
 import { toggleTheme, setTheme, updateToggleIcon } from './theme';
 import { checkQuiz, skipQuiz, checkReverse, skipReverse,
          checkMixed, skipMixed, checkCon, skipCon } from './quiz';
-import { renderGrid, renderRef, renderConstantButtons, showSection, showQuizNav, updateMasteryColors, startGridQuiz, checkGridQuiz, toggleTimedQuiz, toggleDyslexiaFont, exportWordlistCSV, exportWordlistJSON, importCSV, importJSON } from './ui';
+import { renderGrid, renderRef, renderConstantButtons, showSection, showQuizNav, updateMasteryColors, startGridQuiz, checkGridQuiz, toggleTimedQuiz, toggleDyslexiaFont, exportWordlistCSV, exportWordlistJSON, importCSV, importJSON, resetAllScores } from './ui';
 import { renderWiki, showWikiCategory, showWikiArticle } from './wiki';
 import { nextTutorialStep, prevTutorialStep } from './tutorial';
 import { ServerState } from './types';
@@ -105,6 +105,7 @@ Object.assign(window, {
   exportWordlistCSV, exportWordlistJSON,
   importCSV, importJSON,
   renderWiki, showWikiCategory, showWikiArticle,
+  resetAllScores,
 });
 
 /* Boot */

@@ -26,6 +26,8 @@ Each mode scores based on **response time**: fast answers (under 2 seconds) earn
 
 **Accessibility** — ARIA labels and roles throughout. OpenDyslexic font toggle in settings.
 
+**Score reset** — Reset all quiz scores and history from settings while keeping your wordlist and preferences.
+
 **Onboarding tutorial** — A 5-step interactive walkthrough shown automatically to new users. Can be replayed from settings.
 
 **Accounts** — Register/login to sync state across devices. Anonymous users get IP-based state that merges into their account on registration.

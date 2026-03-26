@@ -599,6 +599,21 @@ function getMasteryConstants(): MasteryConstants {
   };
 }
 
+export function resetAllScores(): void {
+  if (!confirm('Reset all quiz scores and history? Your wordlist and settings are kept.')) return;
+  appState.score = { correct: 0, total: 0 };
+  for (const name of Object.keys(MODES) as (keyof typeof MODES)[]) {
+    const mode = MODES[name];
+    mode.scores = {};
+    mode.scoreHistory = {};
+    mode.history = [];
+    mode.recentGuesses = [];
+  }
+  saveState();
+  renderGrid();
+  updateMasteryColors();
+}
+
 export function updateMasteryColors(): void {
   if (!appState.keys.length) return;
   const { bgL, bgC, fgL, fgC } = getMasteryConstants();
