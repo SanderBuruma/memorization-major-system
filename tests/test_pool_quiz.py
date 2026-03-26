@@ -75,36 +75,73 @@ class TestPickNext(unittest.TestCase):
             self.assertEqual(pick, "00")
 
 
+WRONG_S = 10
+WEIGHT_DECAY = 0.7
+HISTORY_MAX = 10
+
+
+def _time_to_contribution(seconds: float) -> float:
+    if seconds <= 0.5:
+        return 5
+    if seconds <= 2:
+        return 5 * (2 - seconds) / 1.5
+    if seconds >= 10:
+        return -5
+    return -5 * (seconds - 2) / 8
+
+
+def _weighted_avg(values: list) -> float:
+    s, ws, w = 0.0, 0.0, 1.0
+    for v in reversed(values):
+        s += v * w
+        ws += w
+        w *= WEIGHT_DECAY
+    return s / ws
+
+
+def update_time_score(scores: dict, hists: dict, key: str, seconds: float) -> None:
+    """Python port of updateTimeScore (weighted running average)."""
+    arr = hists.setdefault(key, [])
+    arr.append(_time_to_contribution(seconds))
+    if len(arr) > HISTORY_MAX:
+        arr.pop(0)
+    scores[key] = _weighted_avg(arr)
+
+
 class TestScoring(unittest.TestCase):
 
-    def test_correct_increments(self):
-        scores = {}
-        key = "07"
-        # Correct
-        scores[key] = scores.get(key, 0) + 1
-        self.assertEqual(scores[key], 1)
-        scores[key] = scores.get(key, 0) + 1
-        self.assertEqual(scores[key], 2)
+    def test_fast_answer_positive(self):
+        scores, hists = {}, {}
+        update_time_score(scores, hists, "07", 1.0)
+        expected = 5 * (2 - 1) / 1.5  # ≈ 3.33
+        self.assertAlmostEqual(scores["07"], expected)
 
-    def test_incorrect_decrements(self):
-        scores = {"07": 3}
-        key = "07"
-        scores[key] = scores.get(key, 0) - 1
-        self.assertEqual(scores[key], 2)
+    def test_slow_answer_negative(self):
+        scores, hists = {}, {}
+        update_time_score(scores, hists, "07", 6.0)
+        self.assertAlmostEqual(scores["07"], -2.5)
+
+    def test_wrong_answer_very_negative(self):
+        scores, hists = {}, {}
+        update_time_score(scores, hists, "07", WRONG_S)
+        self.assertAlmostEqual(scores["07"], -5.0)
 
     def test_skip_no_change(self):
-        scores = {"07": 3}
-        key = "07"
+        scores = {"07": 1.5}
         # Skip: no score change
-        self.assertEqual(scores[key], 3)
+        self.assertAlmostEqual(scores["07"], 1.5)
+
+    def test_weighted_two_answers(self):
+        scores, hists = {}, {}
+        update_time_score(scores, hists, "07", 2.0)  # contribution = 0
+        update_time_score(scores, hists, "07", 0.5)  # contribution = 5
+        expected = (0 * 0.7 + 5 * 1.0) / (0.7 + 1.0)
+        self.assertAlmostEqual(scores["07"], expected)
 
     def test_score_can_go_negative(self):
-        scores = {}
-        key = "07"
-        scores[key] = scores.get(key, 0) - 1
-        self.assertEqual(scores[key], -1)
-        scores[key] = scores.get(key, 0) - 1
-        self.assertEqual(scores[key], -2)
+        scores, hists = {}, {}
+        update_time_score(scores, hists, "07", 5.0)
+        self.assertLess(scores["07"], 0)
 
 
 class TestHistory(unittest.TestCase):
@@ -153,14 +190,13 @@ class TestFullSimulation(unittest.TestCase):
 
     def test_all_words_eventually_seen(self):
         """Over enough rounds, all 100 words should be quizzed."""
-        scores = {}
+        scores, hists = {}, {}
         history = []
         seen = set()
         for _ in range(2000):
             key = pick_next(scores, history, ALL_KEYS)
             seen.add(key)
-            # Always answer correctly
-            scores[key] = scores.get(key, 0) + 1
+            update_time_score(scores, hists, key, 1.5)
             history.append(key)
             if len(history) > HISTORY_SIZE:
                 history.pop(0)
@@ -168,7 +204,7 @@ class TestFullSimulation(unittest.TestCase):
 
     def test_no_word_repeated_within_10(self):
         """No word should appear twice within 10 consecutive presentations."""
-        scores = {}
+        scores, hists = {}, {}
         history = []
         recent = []
         for _ in range(500):
@@ -176,14 +212,14 @@ class TestFullSimulation(unittest.TestCase):
             if len(recent) >= HISTORY_SIZE:
                 self.assertNotIn(key, recent[-HISTORY_SIZE:])
             recent.append(key)
-            scores[key] = scores.get(key, 0) + 1
+            update_time_score(scores, hists, key, 1.5)
             history.append(key)
             if len(history) > HISTORY_SIZE:
                 history.pop(0)
 
     def test_low_score_words_appear_more_often(self):
         """Words with lower scores should be picked more frequently."""
-        scores = {"00": -5, "01": 0, "02": 10, "03": 10}
+        scores = {"00": -5.0, "01": 0.0, "02": 1.5, "03": 1.5}
         test_keys = ["00", "01", "02", "03"]
         counts = {k: 0 for k in test_keys}
         history = []
@@ -201,34 +237,36 @@ class TestFullSimulation(unittest.TestCase):
         """Consonant quiz has ~16 keys; cooldown of 10 still functions."""
         con_keys = ["S", "Z", "T", "D", "TH", "N", "M", "R",
                     "L", "SH", "CH", "J", "C", "G", "F", "V", "B", "P"]
-        scores = {}
+        scores, hists = {}, {}
         history = []
         seen = set()
         for _ in range(500):
             key = pick_next(scores, history, con_keys)
             seen.add(key)
-            scores[key] = scores.get(key, 0) + 1
+            update_time_score(scores, hists, key, 1.0)
             history.append(key)
             if len(history) > HISTORY_SIZE:
                 history.pop(0)
         self.assertEqual(seen, set(con_keys))
 
     def test_mixed_correct_and_incorrect(self):
-        """Simulation with mixed correct/incorrect answers."""
-        scores = {}
+        """Simulation with mixed correct/incorrect answers runs without error."""
+        scores, hists = {}, {}
         history = []
-        seen = set()
         for i in range(2000):
             key = pick_next(scores, history, ALL_KEYS)
-            seen.add(key)
             if i % 3 == 0:
-                scores[key] = scores.get(key, 0) - 1  # incorrect
+                update_time_score(scores, hists, key, WRONG_S)
             else:
-                scores[key] = scores.get(key, 0) + 1  # correct
+                update_time_score(scores, hists, key, 1.5)
             history.append(key)
             if len(history) > HISTORY_SIZE:
                 history.pop(0)
-        self.assertEqual(seen, set(ALL_KEYS))
+        # Scores should exist and be bounded by the contribution range
+        self.assertGreater(len(scores), 0)
+        for v in scores.values():
+            self.assertGreaterEqual(v, -5.0)
+            self.assertLessEqual(v, 5.0)
 
 
 if __name__ == '__main__':

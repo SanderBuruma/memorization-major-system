@@ -27,10 +27,10 @@ def score_to_hue(score: float) -> float:
             t = math.sqrt(-score / 5)
             return 264 - t * (264 - 90)
         else:
-            t = math.sqrt((-score - 5) / 5)
+            t = math.sqrt(min(1, (-score - 5) / 5))
             return 90 - t * (90 - 27)
     else:
-        t = math.sqrt(score / 10)
+        t = math.sqrt(min(1, score / 10))
         return 264 - t * (264 - 145)
 
 

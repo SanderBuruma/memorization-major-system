@@ -25,11 +25,13 @@ export interface QuizMode<T extends QuizItem = QuizItem> {
   readonly feedbackId: string;
   readonly submitId: string;
   scores: Record<string, number>;
+  scoreHistory: Record<string, number[]>;
   history: string[];
   recentGuesses: boolean[];
   current: T | null;
   timer: ReturnType<typeof setTimeout> | null;
   readonly persistScores: string;
+  readonly persistScoreHistory: string;
   readonly persistHistory: string;
   readonly persistGuesses: string;
   allKeys(): string[];

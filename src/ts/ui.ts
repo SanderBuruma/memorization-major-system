@@ -580,10 +580,10 @@ function scoreToHue(score: number): number {
       const t = Math.sqrt((-score) / 5);
       return 264 - t * (264 - 90);
     }
-    const t = Math.sqrt((-score - 5) / 5);
+    const t = Math.sqrt(Math.min(1, (-score - 5) / 5));
     return 90 - t * (90 - 27);
   }
-  const t = Math.sqrt(score / 10);
+  const t = Math.sqrt(Math.min(1, score / 10));
   return 264 - t * (264 - 145);
 }
 

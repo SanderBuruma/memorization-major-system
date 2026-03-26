@@ -8,14 +8,69 @@ let countdownTimeout: ReturnType<typeof setTimeout> | null = null;
 
 const MAX_RECENT_GUESSES = 100;
 
+/* --- Response-time scoring state --- */
+let questionStartTime = 0;
+let accumulatedElapsed = 0;
+let timerPaused = false;
+const WRONG_ANSWER_SECONDS = 10;
+const SCORE_HISTORY_MAX = 10;
+const WEIGHT_DECAY = 0.7;
+
+function resetResponseTimer(): void {
+  questionStartTime = performance.now();
+  accumulatedElapsed = 0;
+  timerPaused = false;
+}
+
+function pauseTimer(): void {
+  if (timerPaused) return;
+  accumulatedElapsed += performance.now() - questionStartTime;
+  timerPaused = true;
+}
+
+function resumeTimer(): void {
+  if (!timerPaused) return;
+  questionStartTime = performance.now();
+  timerPaused = false;
+}
+
+function getElapsedSeconds(): number {
+  const running = timerPaused ? 0 : performance.now() - questionStartTime;
+  return Math.max(0, (accumulatedElapsed + running) / 1000);
+}
+
+/** Piecewise score contribution: +5 at ≤0.5s, 0 at 2s, -5 at ≥10s. */
+function timeToContribution(seconds: number): number {
+  if (seconds <= 0.5) return 5;
+  if (seconds <= 2) return 5 * (2 - seconds) / 1.5;
+  if (seconds >= 10) return -5;
+  return -5 * (seconds - 2) / 8;
+}
+
+function weightedAverage(values: number[]): number {
+  let sum = 0, wsum = 0;
+  for (let i = values.length - 1, w = 1; i >= 0; i--, w *= WEIGHT_DECAY) {
+    sum += values[i] * w;
+    wsum += w;
+  }
+  return sum / wsum;
+}
+
+function updateTimeScore(
+  scores: Record<string, number>,
+  hist: Record<string, number[]>,
+  key: string, seconds: number,
+): void {
+  const arr = hist[key] ?? [];
+  arr.push(timeToContribution(seconds));
+  if (arr.length > SCORE_HISTORY_MAX) arr.shift();
+  hist[key] = arr;
+  scores[key] = weightedAverage(arr);
+}
+
 function recordGuess<T extends QuizItem>(mode: QuizMode<T>, correct: boolean): void {
   mode.recentGuesses.push(correct);
   if (mode.recentGuesses.length > MAX_RECENT_GUESSES) mode.recentGuesses.shift();
-}
-
-/** Higher scores incur steeper penalties: floor(score/4) + 1, minimum 1. */
-function mistakePenalty(score: number): number {
-  return Math.max(1, Math.floor(score / 4) + 1);
 }
 
 /** Countdown seconds by mastery score: score 1 = 15s, score 2 = 10s, ...; scores above 7 use 3s. */
@@ -33,7 +88,8 @@ function getQuizArea<T extends QuizItem>(mode: QuizMode<T>): HTMLElement {
 
 function getTimeLimit(score: number): number {
   if (score <= 0) return 0;
-  return TIME_LIMITS[Math.min(score - 1, TIME_LIMITS.length - 1)];
+  const tier = Math.max(1, Math.ceil(score * 1.5));
+  return TIME_LIMITS[Math.min(tier - 1, TIME_LIMITS.length - 1)];
 }
 
 function clearCountdown(): void {
@@ -78,8 +134,7 @@ function timeoutMode<T extends QuizItem>(mode: QuizMode<T>): void {
   (document.getElementById(mode.submitId) as HTMLButtonElement).disabled = true;
 
   const key = mode.historyKey(mode.current);
-  const cur = mode.scores[key] ?? 0;
-  mode.scores[key] = cur - mistakePenalty(cur);
+  updateTimeScore(mode.scores, mode.scoreHistory, key, WRONG_ANSWER_SECONDS);
   appState.score.total++;
   logActivity();
 
@@ -148,16 +203,16 @@ export function startMode<T extends QuizItem>(mode: QuizMode<T>): void {
     // Force reflow so the opacity:0 applies before we remove the class
     void area.offsetHeight;
     area.classList.remove('quiz-fade-out');
-    // Start countdown after fade-in completes
-    setTimeout(() => { maybeStartCountdown(mode); }, FADE_MS);
+    // Start countdown + response timer after fade-in completes
+    setTimeout(() => { maybeStartCountdown(mode); resetResponseTimer(); }, FADE_MS);
   } else {
     // Subsequent questions: fade out, swap content, fade in
     area.classList.add('quiz-fade-out');
     setTimeout(() => {
       applyNextQuestion(mode);
       area.classList.remove('quiz-fade-out');
-      // Start countdown after fade-in completes
-      setTimeout(() => { maybeStartCountdown(mode); }, FADE_MS);
+      // Start countdown + response timer after fade-in completes
+      setTimeout(() => { maybeStartCountdown(mode); resetResponseTimer(); }, FADE_MS);
     }, FADE_MS);
   }
 }
@@ -180,12 +235,11 @@ export function checkMode<T extends QuizItem>(mode: QuizMode<T>): void {
   const isCorrect = answer === correct;
   if (isCorrect) {
     appState.score.correct++;
-    mode.scores[key] = (mode.scores[key] ?? 0) + 1;
+    updateTimeScore(mode.scores, mode.scoreHistory, key, getElapsedSeconds());
     fb.className = 'feedback correct';
     fb.textContent = 'Correct!';
   } else {
-    const cur = mode.scores[key] ?? 0;
-    mode.scores[key] = cur - mistakePenalty(cur);
+    updateTimeScore(mode.scores, mode.scoreHistory, key, WRONG_ANSWER_SECONDS);
     fb.className = 'feedback incorrect';
     fb.textContent = `Incorrect. Answer: ${mode.formatCorrect(mode.current)}`;
   }
@@ -210,7 +264,7 @@ export function skipMode<T extends QuizItem>(mode: QuizMode<T>): void {
   setTimeout(() => {
     applyNextQuestion(mode);
     area.classList.remove('quiz-fade-out');
-    setTimeout(() => { maybeStartCountdown(mode); }, FADE_MS);
+    setTimeout(() => { maybeStartCountdown(mode); resetResponseTimer(); }, FADE_MS);
   }, FADE_MS);
 }
 
@@ -227,3 +281,27 @@ export function skipMixed() { skipMode(MODES.mixed); }
 export function startCon() { startMode(MODES.consonant); }
 export function checkCon() { checkMode(MODES.consonant); }
 export function skipCon() { skipMode(MODES.consonant); }
+
+/* Prefix-match timer pausing: 500ms grace window per correct keystroke */
+const PAUSE_GRACE_MS = 500;
+let pauseGraceTimeout: ReturnType<typeof setTimeout> | null = null;
+
+function handleQuizInput<T extends QuizItem>(mode: QuizMode<T>): void {
+  if (!mode.current) return;
+  const inp = document.getElementById(mode.inputId) as HTMLInputElement;
+  const raw = inp.value.trim().toLowerCase();
+  const correct = mode.getAnswer(mode.current).toLowerCase();
+  if (raw && correct.startsWith(raw)) {
+    pauseTimer();
+    if (pauseGraceTimeout) clearTimeout(pauseGraceTimeout);
+    pauseGraceTimeout = setTimeout(() => { resumeTimer(); pauseGraceTimeout = null; }, PAUSE_GRACE_MS);
+  } else {
+    if (pauseGraceTimeout) { clearTimeout(pauseGraceTimeout); pauseGraceTimeout = null; }
+    resumeTimer();
+  }
+}
+
+document.getElementById('quiz-input')!.addEventListener('input', () => handleQuizInput(MODES.quiz));
+document.getElementById('rev-input')!.addEventListener('input', () => handleQuizInput(MODES.reverse));
+document.getElementById('mix-input')!.addEventListener('input', () => handleQuizInput(MODES.mixed));
+document.getElementById('con-input')!.addEventListener('input', () => handleQuizInput(MODES.consonant));

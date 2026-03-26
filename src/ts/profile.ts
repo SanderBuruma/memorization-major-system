@@ -113,18 +113,20 @@ export function renderProfile(): void {
     else mast[4]++;
   });
   const sorted = combined.slice().sort((a, b) => a - b);
-  const sMin = sorted[0] ?? 0, sMax = sorted[sorted.length - 1] ?? 0;
-  const sMean = combined.length ? (combined.reduce((a, b) => a + b, 0) / combined.length).toFixed(1) : 0;
-  let sMed = 0;
+  const sMin = (sorted[0] ?? 0).toFixed(1), sMax = (sorted[sorted.length - 1] ?? 0).toFixed(1);
+  const sMean = combined.length ? (combined.reduce((a, b) => a + b, 0) / combined.length).toFixed(1) : '0.0';
+  let sMed = '0.0';
   if (sorted.length) {
     const mid = Math.floor(sorted.length / 2);
-    sMed = sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+    const raw = sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+    sMed = raw.toFixed(1);
   }
   const cScores = appState.conKeys.map((key) => MODES.consonant.scores[key] ?? 0).sort((a, b) => a - b);
-  let cMed = 0;
+  let cMed = '0.0';
   if (cScores.length) {
     const cm = Math.floor(cScores.length / 2);
-    cMed = cScores.length % 2 ? cScores[cm] : (cScores[cm - 1] + cScores[cm]) / 2;
+    const rawCMed = cScores.length % 2 ? cScores[cm] : (cScores[cm - 1] + cScores[cm]) / 2;
+    cMed = rawCMed.toFixed(1);
   }
   const pct = appState.score.total > 0 ? (appState.score.correct / appState.score.total * 100).toFixed(1) : 0;
   const labels = ['Struggling', 'Weak', 'Learning', 'Good', 'Mastered'];

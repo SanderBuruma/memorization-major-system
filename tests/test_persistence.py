@@ -255,7 +255,7 @@ class TestSaveCallSites(unittest.TestCase):
         self.assertIn("mode.history.push(", self._function_body("skipMode"))
 
     def test_checkMode_modifies_scores(self):
-        self.assertIn("mode.scores[", self._function_body("checkMode"))
+        self.assertIn("updateTimeScore(mode.scores", self._function_body("checkMode"))
 
     def test_init_calls_loadState(self):
         self.assertIn("loadState()", self._function_body("init"))

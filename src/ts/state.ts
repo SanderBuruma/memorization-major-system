@@ -25,8 +25,8 @@ export const MODES: AllModes = {
   quiz: {
     promptId: 'quiz-prompt', inputId: 'quiz-input',
     feedbackId: 'quiz-feedback', submitId: 'quiz-submit',
-    scores: {}, history: [], recentGuesses: [], current: null, timer: null,
-    persistScores: 'quizScores', persistHistory: 'quizHistory', persistGuesses: 'quizGuesses',
+    scores: {}, scoreHistory: {}, history: [], recentGuesses: [], current: null, timer: null,
+    persistScores: 'quizScores', persistScoreHistory: 'quizScoreHistory', persistHistory: 'quizHistory', persistGuesses: 'quizGuesses',
     allKeys() { return appState.keys; },
     pickItem(k) { return { digits: k, word: appState.wordlist[k] }; },
     getPrompt(item) { return item.digits; },
@@ -39,8 +39,8 @@ export const MODES: AllModes = {
   reverse: {
     promptId: 'rev-prompt', inputId: 'rev-input',
     feedbackId: 'rev-feedback', submitId: 'rev-submit',
-    scores: {}, history: [], recentGuesses: [], current: null, timer: null,
-    persistScores: 'reverseScores', persistHistory: 'reverseHistory', persistGuesses: 'reverseGuesses',
+    scores: {}, scoreHistory: {}, history: [], recentGuesses: [], current: null, timer: null,
+    persistScores: 'reverseScores', persistScoreHistory: 'reverseScoreHistory', persistHistory: 'reverseHistory', persistGuesses: 'reverseGuesses',
     allKeys() { return appState.keys; },
     pickItem(k) { return { digits: k, word: appState.wordlist[k] }; },
     getPrompt(item) { return item.word; },
@@ -53,8 +53,8 @@ export const MODES: AllModes = {
   mixed: {
     promptId: 'mix-prompt', inputId: 'mix-input',
     feedbackId: 'mix-feedback', submitId: 'mix-submit',
-    scores: {}, history: [], recentGuesses: [], current: null, timer: null,
-    persistScores: 'mixedScores', persistHistory: 'mixedHistory', persistGuesses: 'mixedGuesses',
+    scores: {}, scoreHistory: {}, history: [], recentGuesses: [], current: null, timer: null,
+    persistScores: 'mixedScores', persistScoreHistory: 'mixedScoreHistory', persistHistory: 'mixedHistory', persistGuesses: 'mixedGuesses',
     allKeys() { return appState.keys; },
     pickItem(k): WordQuizItem {
       const mode = Math.random() < 0.5 ? 'forward' : 'reverse';
@@ -79,8 +79,8 @@ export const MODES: AllModes = {
   consonant: {
     promptId: 'con-prompt', inputId: 'con-input',
     feedbackId: 'con-feedback', submitId: 'con-submit',
-    scores: {}, history: [], recentGuesses: [], current: null, timer: null,
-    persistScores: 'conScores', persistHistory: 'conHistory', persistGuesses: 'conGuesses',
+    scores: {}, scoreHistory: {}, history: [], recentGuesses: [], current: null, timer: null,
+    persistScores: 'conScores', persistScoreHistory: 'conScoreHistory', persistHistory: 'conHistory', persistGuesses: 'conGuesses',
     allKeys() { return appState.conKeys; },
     pickItem(k) { return { key: k }; },
     getPrompt(item) { return CON_DISPLAY_NAMES[item.key] ?? item.key; },
@@ -104,6 +104,7 @@ for (const name of Object.keys(MODES) as (keyof AllModes)[]) {
   const mode = MODES[name];
   STATE_FIELDS.push(
     { key: mode.persistScores, get() { return mode.scores; }, set(v) { mode.scores = (v as typeof mode.scores) ?? {}; } },
+    { key: mode.persistScoreHistory, get() { return mode.scoreHistory; }, set(v) { mode.scoreHistory = (v as typeof mode.scoreHistory) ?? {}; } },
     { key: mode.persistHistory, get() { return mode.history; }, set(v) { mode.history = (v as typeof mode.history) ?? []; } },
     { key: mode.persistGuesses, get() { return mode.recentGuesses; }, set(v) { mode.recentGuesses = (v as typeof mode.recentGuesses) ?? []; } },
   );
