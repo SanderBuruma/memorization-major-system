@@ -606,6 +606,10 @@ export function resetAllScores(): void {
     const mode = MODES[name];
     mode.scores = {};
     mode.scoreHistory = {};
+    for (const key of appState.keys) {
+      mode.scores[key] = -5;
+      mode.scoreHistory[key] = [-5];
+    }
     mode.history = [];
     mode.recentGuesses = [];
   }

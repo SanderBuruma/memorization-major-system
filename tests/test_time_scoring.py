@@ -544,56 +544,59 @@ class TestPrefixPauseGraceJS(unittest.TestCase):
 class TestScoringPickNextIntegration(unittest.TestCase):
     """Verify pickNext prioritizes items with worse (lower) time-based scores."""
 
-    def test_slow_items_picked_first(self):
+    def test_slow_items_picked_most(self):
         results = _run_js_tests([{
-            "name": "slow_items_first",
+            "name": "slow_items_most",
             "code": """
                 var scores = {}, hist = {};
                 updateTimeScore(scores, hist, '00', 1.0);
                 updateTimeScore(scores, hist, '01', 8.0);
                 updateTimeScore(scores, hist, '02', 0.5);
                 var keys = ['00', '01', '02'];
-                for (var i = 0; i < 50; i++) {
-                    var pick = pickNext(scores, [], keys);
-                    if (pick !== '01')
-                        throw new Error('expected 01 (slowest), got ' + pick);
+                var counts = {'00': 0, '01': 0, '02': 0};
+                for (var i = 0; i < 500; i++) {
+                    counts[pickNext(scores, [], keys)]++;
                 }
+                if (counts['01'] <= counts['00'] || counts['01'] <= counts['02'])
+                    throw new Error('slowest item 01 should be picked most: ' + JSON.stringify(counts));
             """,
         }])
         self.assertTrue(results[0]["pass"], results[0].get("error"))
 
-    def test_wrong_answers_drop_to_bottom(self):
+    def test_wrong_answers_picked_most(self):
         results = _run_js_tests([{
-            "name": "wrong_drops",
+            "name": "wrong_picked_most",
             "code": """
                 var scores = {}, hist = {};
                 updateTimeScore(scores, hist, '00', 1.0);
                 updateTimeScore(scores, hist, '01', 1.0);
                 updateTimeScore(scores, hist, '02', 10);
                 var keys = ['00', '01', '02'];
-                for (var i = 0; i < 50; i++) {
-                    var pick = pickNext(scores, [], keys);
-                    if (pick !== '02')
-                        throw new Error('expected 02 (wrong answer), got ' + pick);
+                var counts = {'00': 0, '01': 0, '02': 0};
+                for (var i = 0; i < 500; i++) {
+                    counts[pickNext(scores, [], keys)]++;
                 }
+                if (counts['02'] <= counts['00'] || counts['02'] <= counts['01'])
+                    throw new Error('wrong-answer item 02 should be picked most: ' + JSON.stringify(counts));
             """,
         }])
         self.assertTrue(results[0]["pass"], results[0].get("error"))
 
-    def test_unseen_items_have_score_zero(self):
-        """Unseen items default to 0, picked before positive-scored items."""
+    def test_unseen_items_preferred(self):
+        """Unseen items default to 0, preferred over positive-scored items."""
         results = _run_js_tests([{
-            "name": "unseen_zero",
+            "name": "unseen_preferred",
             "code": """
                 var scores = {}, hist = {};
                 updateTimeScore(scores, hist, '00', 1.0);
                 updateTimeScore(scores, hist, '01', 0.5);
                 var keys = ['00', '01', '02'];
-                for (var i = 0; i < 50; i++) {
-                    var pick = pickNext(scores, [], keys);
-                    if (pick !== '02')
-                        throw new Error('expected 02 (unseen/0), got ' + pick);
+                var counts = {'00': 0, '01': 0, '02': 0};
+                for (var i = 0; i < 500; i++) {
+                    counts[pickNext(scores, [], keys)]++;
                 }
+                if (counts['02'] <= counts['00'] || counts['02'] <= counts['01'])
+                    throw new Error('unseen item 02 should be picked most: ' + JSON.stringify(counts));
             """,
         }])
         self.assertTrue(results[0]["pass"], results[0].get("error"))

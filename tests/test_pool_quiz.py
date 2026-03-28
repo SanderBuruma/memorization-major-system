@@ -18,13 +18,19 @@ HISTORY_SIZE = 10
 # ── JS pickNext logic faithfully replicated in Python ────────────────
 
 def pick_next(scores: dict, history: list, all_keys: list) -> str:
-    """Pick the next key: exclude history, find min score, random among ties."""
+    """Pick next key: exclude history, weighted random biased toward lower scores."""
     eligible = [k for k in all_keys if k not in history]
     if not eligible:
-        eligible = all_keys[:]  # fallback if all in cooldown
-    min_score = min((scores.get(k, 0) for k in eligible), default=0)
-    candidates = [k for k in eligible if scores.get(k, 0) == min_score]
-    return random.choice(candidates)
+        eligible = all_keys[:]
+    max_score = max((scores.get(k, 0) for k in eligible), default=0)
+    weights = [(max_score - scores.get(k, 0) + 1) ** 2 for k in eligible]
+    total = sum(weights)
+    r = random.random() * total
+    for i, key in enumerate(eligible):
+        r -= weights[i]
+        if r <= 0:
+            return key
+    return eligible[-1]
 
 
 class TestPickNext(unittest.TestCase):
@@ -35,13 +41,16 @@ class TestPickNext(unittest.TestCase):
             pick = pick_next({}, history, ALL_KEYS)
             self.assertNotIn(pick, history)
 
-    def test_picks_from_lowest_score(self):
+    def test_prefers_lower_scores(self):
         scores = {"00": 5, "01": 5, "02": 0, "03": 0}
         test_keys = ["00", "01", "02", "03"]
-        picks = set()
-        for _ in range(200):
-            picks.add(pick_next(scores, [], test_keys))
-        self.assertEqual(picks, {"02", "03"})
+        counts = {k: 0 for k in test_keys}
+        for _ in range(1000):
+            counts[pick_next(scores, [], test_keys)] += 1
+        # Lower-scored items should appear much more often
+        self.assertGreater(counts["02"] + counts["03"], counts["00"] + counts["01"])
+        # But higher-scored items should still appear sometimes
+        self.assertGreater(counts["00"] + counts["01"], 0)
 
     def test_random_among_ties(self):
         """When multiple keys share the min score, all should be reachable."""
@@ -53,12 +62,13 @@ class TestPickNext(unittest.TestCase):
         self.assertEqual(picks, {"00", "01", "02"})
 
     def test_default_score_is_zero(self):
-        """Keys not in scores dict should be treated as score 0."""
+        """Keys not in scores dict (score 0) should be preferred over scored keys."""
         scores = {"00": 1}
         test_keys = ["00", "01"]
-        for _ in range(100):
-            pick = pick_next(scores, [], test_keys)
-            self.assertEqual(pick, "01")
+        counts = {k: 0 for k in test_keys}
+        for _ in range(500):
+            counts[pick_next(scores, [], test_keys)] += 1
+        self.assertGreater(counts["01"], counts["00"])
 
     def test_fallback_when_all_in_history(self):
         """When all keys are in history, fallback to picking from all keys."""
@@ -70,9 +80,11 @@ class TestPickNext(unittest.TestCase):
     def test_negative_scores_preferred(self):
         scores = {"00": -2, "01": 0, "02": 3}
         test_keys = ["00", "01", "02"]
-        for _ in range(100):
-            pick = pick_next(scores, [], test_keys)
-            self.assertEqual(pick, "00")
+        counts = {k: 0 for k in test_keys}
+        for _ in range(1000):
+            counts[pick_next(scores, [], test_keys)] += 1
+        self.assertGreater(counts["00"], counts["01"])
+        self.assertGreater(counts["01"], counts["02"])
 
 
 WRONG_S = 10
@@ -106,6 +118,21 @@ def update_time_score(scores: dict, hists: dict, key: str, seconds: float) -> No
     if len(arr) > HISTORY_MAX:
         arr.pop(0)
     scores[key] = _weighted_avg(arr)
+
+
+    def test_diversity_with_uniform_scores(self):
+        """When all items have the same score, selection should be diverse."""
+        scores = {k: 4.5 for k in ALL_KEYS}
+        seen = set()
+        history = []
+        for _ in range(50):
+            key = pick_next(scores, history, ALL_KEYS)
+            seen.add(key)
+            history.append(key)
+            if len(history) > HISTORY_SIZE:
+                history.pop(0)
+        self.assertGreater(len(seen), 20,
+            f"Only {len(seen)} unique in 50 rounds with uniform scores — should be diverse")
 
 
 class TestScoring(unittest.TestCase):

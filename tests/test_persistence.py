@@ -296,17 +296,18 @@ class TestJSPickNext(unittest.TestCase):
         }])
         self.assertTrue(results[0]["pass"], results[0].get("error"))
 
-    def test_picks_lowest_score(self):
+    def test_prefers_lowest_score(self):
         results = _run_js_tests([{
-            "name": "pickNext_lowest_score",
+            "name": "pickNext_prefers_lowest",
             "code": """
                 var allKeys = ['00','01','02'];
                 var scores = {'00': 5, '01': 5, '02': -1};
-                for(var i = 0; i < 100; i++){
-                    var pick = pickNext(scores, [], allKeys);
-                    if(pick !== '02')
-                        throw new Error('picked ' + pick + ' instead of 02 (lowest score)');
+                var counts = {'00': 0, '01': 0, '02': 0};
+                for(var i = 0; i < 500; i++){
+                    counts[pickNext(scores, [], allKeys)]++;
                 }
+                if(counts['02'] <= counts['00'] + counts['01'])
+                    throw new Error('lowest-scored 02 should dominate: ' + JSON.stringify(counts));
             """,
         }])
         self.assertTrue(results[0]["pass"], results[0].get("error"))

@@ -41,6 +41,9 @@ class TestWordlistAPI(TestCase):
 
 
 class TestStateAPI(TestCase):
+    def setUp(self):
+        QuizState.objects.all().delete()
+
     def test_get_empty_state(self):
         resp = self.client.get('/api/state')
         self.assertEqual(resp.status_code, 200)

@@ -153,13 +153,25 @@ function timeoutMode<T extends QuizItem>(mode: QuizMode<T>): void {
 function pickNext(scores: Record<string, number>, history: string[], allKeys: string[]): string {
   let eligible = allKeys.filter((key) => !history.includes(key));
   if (eligible.length === 0) eligible = allKeys.slice();
-  let minScore = Infinity;
+  // Weight selection toward lower-scored items: weight = (maxScore - score + 1)^2
+  let maxScore = -Infinity;
   for (const key of eligible) {
-    const score = scores[key] ?? 0;
-    if (score < minScore) minScore = score;
+    const s = scores[key] ?? 0;
+    if (s > maxScore) maxScore = s;
   }
-  const candidates = eligible.filter((key) => (scores[key] ?? 0) === minScore);
-  return candidates[Math.floor(Math.random() * candidates.length)];
+  const weights: number[] = [];
+  let totalWeight = 0;
+  for (const key of eligible) {
+    const w = (maxScore - (scores[key] ?? 0) + 1) ** 2;
+    weights.push(w);
+    totalWeight += w;
+  }
+  let r = Math.random() * totalWeight;
+  for (let i = 0; i < eligible.length; i++) {
+    r -= weights[i];
+    if (r <= 0) return eligible[i];
+  }
+  return eligible[eligible.length - 1];
 }
 
 /** Populate quiz DOM with new question content (no countdown — caller handles timing). */
