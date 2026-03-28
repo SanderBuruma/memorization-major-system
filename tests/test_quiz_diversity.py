@@ -14,7 +14,10 @@ import sys
 import time
 import unittest
 
-from playwright.sync_api import sync_playwright
+try:
+    from playwright.sync_api import sync_playwright
+except ImportError:
+    sync_playwright = None
 
 
 def _free_port() -> int:
@@ -23,6 +26,7 @@ def _free_port() -> int:
         return s.getsockname()[1]
 
 
+@unittest.skipIf(sync_playwright is None, "playwright not installed")
 class TestQuizDiversity(unittest.TestCase):
     server: subprocess.Popen
     port: int
