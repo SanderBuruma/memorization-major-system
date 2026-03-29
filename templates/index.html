@@ -37,6 +37,14 @@
 
   <!-- GRID ----------------------------------------------------------- -->
   <div id="section-grid" class="section active">
+    <div class="grid-controls">
+      <select id="grid-score-mode" onchange="setGridScoreMode(this.value)">
+        <option value="combined">Combined</option>
+        <option value="quiz">Number → Word</option>
+        <option value="reverse">Word → Number</option>
+        <option value="mixed">Mixed</option>
+      </select>
+    </div>
     <div id="grid" class="grid"></div>
   </div>
 

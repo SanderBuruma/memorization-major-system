@@ -1,5 +1,11 @@
 @use 'variables' as *;
 
+.grid-controls {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 8px;
+}
+
 .grid {
   display: grid;
   grid-template-columns: repeat($grid-columns, 1fr);

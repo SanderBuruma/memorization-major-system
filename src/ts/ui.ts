@@ -618,6 +618,22 @@ export function resetAllScores(): void {
   updateMasteryColors();
 }
 
+export function setGridScoreMode(mode: string): void {
+  appState.gridScoreMode = mode;
+  saveState();
+  updateMasteryColors();
+}
+
+function getGridScore(key: string): number {
+  const m = appState.gridScoreMode;
+  if (m === 'quiz' || m === 'reverse' || m === 'mixed') {
+    return MODES[m].scores[key] ?? 0;
+  }
+  return (MODES.quiz.scores[key] ?? 0)
+       + (MODES.reverse.scores[key] ?? 0)
+       + (MODES.mixed.scores[key] ?? 0);
+}
+
 export function updateMasteryColors(): void {
   if (!appState.keys.length) return;
   const { bgL, bgC, fgL, fgC } = getMasteryConstants();
@@ -625,10 +641,7 @@ export function updateMasteryColors(): void {
   cells.forEach((cell) => {
     const key = cell.getAttribute('data-key');
     if (!key) return;
-    const raw = (MODES.quiz.scores[key] ?? 0)
-              + (MODES.reverse.scores[key] ?? 0)
-              + (MODES.mixed.scores[key] ?? 0);
-    const score = Math.max(-10, Math.min(10, raw));
+    const score = Math.max(-10, Math.min(10, getGridScore(key)));
     const el = cell as HTMLElement;
     if (score === 0) {
       el.style.backgroundColor = '';

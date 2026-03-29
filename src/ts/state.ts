@@ -19,6 +19,7 @@ export const appState: AppState = {
   conMap: {},
   dyslexiaFont: false,
   activityLog: {},
+  gridScoreMode: 'combined',
 };
 
 export const MODES: AllModes = {
@@ -99,6 +100,7 @@ export const STATE_FIELDS: StateField[] = [
   { key: 'tutorialSeen', get() { return appState.tutorialSeen; }, set(v) { appState.tutorialSeen = v === true; } },
   { key: 'dyslexiaFont', get() { return appState.dyslexiaFont; }, set(v) { appState.dyslexiaFont = v === true; } },
   { key: 'activityLog', get() { return appState.activityLog; }, set(v) { appState.activityLog = (v as typeof appState.activityLog) ?? {}; } },
+  { key: 'gridScoreMode', get() { return appState.gridScoreMode; }, set(v) { appState.gridScoreMode = (typeof v === 'string' ? v : 'combined'); }, localOnly: true },
 ];
 for (const name of Object.keys(MODES) as (keyof AllModes)[]) {
   const mode = MODES[name];

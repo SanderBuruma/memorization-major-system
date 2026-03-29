@@ -11,6 +11,7 @@ export interface AppState {
   conMap: Record<string, string>;
   dyslexiaFont: boolean;
   activityLog: Record<string, number>;
+  gridScoreMode: string;
 }
 
 export interface Score { correct: number; total: number; }
