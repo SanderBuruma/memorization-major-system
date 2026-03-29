@@ -1,5 +1,26 @@
 @use 'variables' as *;
 
+// Sync indicator
+.sync-indicator {
+  display: none;
+  align-items: center;
+  justify-content: center;
+
+  &.dirty {
+    display: flex;
+  }
+
+  &.syncing svg { animation: spin .8s linear infinite; }
+
+  svg {
+    width: 16px;
+    height: 16px;
+    fill: var(--text-secondary);
+  }
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
 // Arrow pill shared
 .arrow-pill {
   display: inline-flex;

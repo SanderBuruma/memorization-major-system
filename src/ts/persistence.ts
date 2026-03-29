@@ -20,12 +20,15 @@ export function saveState(): void {
   serverState.theme = state.theme;
   localStorage.setItem('quizState', JSON.stringify(state));
   if (_syncTimer) clearTimeout(_syncTimer);
+  const indicator = document.getElementById('sync-indicator');
+  indicator?.classList.add('dirty', 'syncing');
   _syncTimer = setTimeout(() => {
     fetch('/api/state', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
       body: JSON.stringify(serverState),
-    }).catch(() => {});
+    }).then(() => indicator?.classList.remove('dirty', 'syncing'))
+      .catch(() => indicator?.classList.remove('syncing'));
   }, 1000);
   updateMasteryColors();
 }
