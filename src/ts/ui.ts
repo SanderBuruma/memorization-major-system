@@ -574,17 +574,10 @@ export function updateAccuracy<T extends QuizItem>(mode: QuizMode<T>): void {
   el.textContent = `Last ${guesses.length}: ${correct}/${guesses.length} (${pct}%)`;
 }
 
+/** Map score ∈ [-10, 10] to hue: 0 (red) → 60 (yellow) → 145 (green). */
 function scoreToHue(score: number): number {
-  if (score < 0) {
-    if (score >= -5) {
-      const t = Math.sqrt((-score) / 5);
-      return 264 - t * (264 - 90);
-    }
-    const t = Math.sqrt(Math.min(1, (-score - 5) / 5));
-    return 90 - t * (90 - 27);
-  }
-  const t = Math.sqrt(Math.min(1, score / 10));
-  return 264 - t * (264 - 145);
+  const t = (Math.max(-10, Math.min(10, score)) + 10) / 20; // 0..1
+  return t * 145;
 }
 
 interface MasteryConstants { bgL: string; bgC: string; fgL: string; fgC: string; }
@@ -643,11 +636,6 @@ export function updateMasteryColors(): void {
     if (!key) return;
     const score = Math.max(-10, Math.min(10, getGridScore(key)));
     const el = cell as HTMLElement;
-    if (score === 0) {
-      el.style.backgroundColor = '';
-      el.style.color = '';
-      return;
-    }
     const H = scoreToHue(score);
     el.style.backgroundColor = `oklch(${bgL} ${bgC} ${H})`;
     el.style.color = `oklch(${fgL} ${fgC} ${H})`;

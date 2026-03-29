@@ -117,7 +117,18 @@ export function logActivity(count = 1): void {
   appState.activityLog[today] = (appState.activityLog[today] ?? 0) + count;
 }
 
+const DEFAULT_SCORE = +(-5 / 3).toFixed(2);
+
 export function rebuildWordlist(): void {
   appState.wordlist = { ...appState.defaultWordlist, ...appState.customWords };
   appState.keys = Object.keys(appState.wordlist).sort();
+  for (const name of Object.keys(MODES) as (keyof AllModes)[]) {
+    const mode = MODES[name];
+    for (const key of mode.allKeys()) {
+      if (!(key in mode.scores)) {
+        mode.scores[key] = DEFAULT_SCORE;
+        mode.scoreHistory[key] = [DEFAULT_SCORE];
+      }
+    }
+  }
 }
